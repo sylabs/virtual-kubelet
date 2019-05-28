@@ -7,9 +7,9 @@ import (
 
 	"github.com/cpuguy83/strongerrors/status/ocstatus"
 	"github.com/pkg/errors"
+	"github.com/sylabs/virtual-kubelet/log"
+	"github.com/sylabs/virtual-kubelet/trace"
 	"github.com/virtual-kubelet/azure-aci/client/aci"
-	"github.com/virtual-kubelet/virtual-kubelet/log"
-	"github.com/virtual-kubelet/virtual-kubelet/trace"
 	"golang.org/x/sync/errgroup"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

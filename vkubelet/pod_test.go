@@ -7,7 +7,7 @@ import (
 
 	"github.com/cpuguy83/strongerrors"
 	pkgerrors "github.com/pkg/errors"
-	testutil "github.com/virtual-kubelet/virtual-kubelet/test/util"
+	testutil "github.com/sylabs/virtual-kubelet/test/util"
 	"gotest.tools/assert"
 	is "gotest.tools/assert/cmp"
 	corev1 "k8s.io/api/core/v1"

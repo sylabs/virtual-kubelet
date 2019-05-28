@@ -19,7 +19,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/virtual-kubelet/virtual-kubelet/providers/register"
+	"github.com/sylabs/virtual-kubelet/providers/register"
 )
 
 // NewCommand creates a new providers subcommand

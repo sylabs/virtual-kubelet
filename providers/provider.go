@@ -4,8 +4,8 @@ import (
 	"context"
 	"io"
 
-	"github.com/virtual-kubelet/virtual-kubelet/vkubelet"
-	"github.com/virtual-kubelet/virtual-kubelet/vkubelet/api"
+	"github.com/sylabs/virtual-kubelet/vkubelet"
+	"github.com/sylabs/virtual-kubelet/vkubelet/api"
 	v1 "k8s.io/api/core/v1"
 	stats "k8s.io/kubernetes/pkg/kubelet/apis/stats/v1alpha1"
 )

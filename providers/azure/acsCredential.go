@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/virtual-kubelet/virtual-kubelet/log"
+	"github.com/sylabs/virtual-kubelet/log"
 )
 
 // AcsCredential represents the credential file for ACS

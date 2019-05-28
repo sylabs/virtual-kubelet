@@ -10,9 +10,9 @@ import (
 	"strings"
 
 	nomad "github.com/hashicorp/nomad/api"
-	"github.com/virtual-kubelet/virtual-kubelet/manager"
-	"github.com/virtual-kubelet/virtual-kubelet/providers"
-	"github.com/virtual-kubelet/virtual-kubelet/vkubelet/api"
+	"github.com/sylabs/virtual-kubelet/manager"
+	"github.com/sylabs/virtual-kubelet/providers"
+	"github.com/sylabs/virtual-kubelet/vkubelet/api"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

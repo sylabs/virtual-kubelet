@@ -19,14 +19,15 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
+	llog "log"
 	"net"
 	"net/http"
 	"os"
 
 	"github.com/pkg/errors"
-	"github.com/virtual-kubelet/virtual-kubelet/log"
-	"github.com/virtual-kubelet/virtual-kubelet/providers"
-	"github.com/virtual-kubelet/virtual-kubelet/vkubelet/api"
+	"github.com/sylabs/virtual-kubelet/log"
+	"github.com/sylabs/virtual-kubelet/providers"
+	"github.com/sylabs/virtual-kubelet/vkubelet/api"
 )
 
 // AcceptedCiphers is the list of accepted TLS ciphers, with known weak ciphers elided
@@ -95,9 +96,12 @@ func setupHTTPServer(ctx context.Context, p providers.Provider, cfg *apiServerCo
 		api.AttachPodRoutes(podRoutes, mux, true)
 
 		s := &http.Server{
-			Handler:   mux,
 			TLSConfig: tlsCfg,
 		}
+		s.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			llog.Println(r.RequestURI)
+			mux.ServeHTTP(w, r)
+		})
 		go serveHTTP(ctx, s, l, "pods")
 		closers = append(closers, s)
 	}

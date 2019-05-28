@@ -17,8 +17,8 @@ import (
 	fieldpath "k8s.io/kubernetes/pkg/fieldpath"
 	"k8s.io/kubernetes/pkg/kubelet/envvars"
 
-	"github.com/virtual-kubelet/virtual-kubelet/log"
-	"github.com/virtual-kubelet/virtual-kubelet/manager"
+	"github.com/sylabs/virtual-kubelet/log"
+	"github.com/sylabs/virtual-kubelet/manager"
 )
 
 const (
@@ -384,7 +384,7 @@ loop:
 			continue loop
 		// Handle population from a field (downward API).
 		case env.ValueFrom != nil && env.ValueFrom.FieldRef != nil:
-			// https://github.com/virtual-kubelet/virtual-kubelet/issues/123
+			// https://github.com/sylabs/virtual-kubelet/issues/123
 			vf := env.ValueFrom.FieldRef
 
 			runtimeVal, err := podFieldSelectorRuntimeValue(vf, pod)

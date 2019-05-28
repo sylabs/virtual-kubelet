@@ -10,13 +10,13 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/virtual-kubelet/virtual-kubelet/cmd/virtual-kubelet/commands/providers"
-	"github.com/virtual-kubelet/virtual-kubelet/cmd/virtual-kubelet/commands/root"
-	"github.com/virtual-kubelet/virtual-kubelet/cmd/virtual-kubelet/commands/version"
-	"github.com/virtual-kubelet/virtual-kubelet/log"
-	logruslogger "github.com/virtual-kubelet/virtual-kubelet/log/logrus"
-	"github.com/virtual-kubelet/virtual-kubelet/trace"
-	"github.com/virtual-kubelet/virtual-kubelet/trace/opencensus"
+	"github.com/sylabs/virtual-kubelet/cmd/virtual-kubelet/commands/providers"
+	"github.com/sylabs/virtual-kubelet/cmd/virtual-kubelet/commands/root"
+	"github.com/sylabs/virtual-kubelet/cmd/virtual-kubelet/commands/version"
+	"github.com/sylabs/virtual-kubelet/log"
+	logruslogger "github.com/sylabs/virtual-kubelet/log/logrus"
+	"github.com/sylabs/virtual-kubelet/trace"
+	"github.com/sylabs/virtual-kubelet/trace/opencensus"
 )
 
 func main() {

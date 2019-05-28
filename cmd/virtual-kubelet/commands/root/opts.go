@@ -22,7 +22,7 @@ import (
 
 	"github.com/mitchellh/go-homedir"
 	"github.com/pkg/errors"
-	"github.com/virtual-kubelet/virtual-kubelet/trace/opencensus"
+	"github.com/sylabs/virtual-kubelet/trace/opencensus"
 	corev1 "k8s.io/api/core/v1"
 )
 

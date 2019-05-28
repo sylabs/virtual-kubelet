@@ -20,8 +20,8 @@ import (
 
 	"github.com/cpuguy83/strongerrors"
 	"github.com/pkg/errors"
-	"github.com/virtual-kubelet/virtual-kubelet/providers"
-	"github.com/virtual-kubelet/virtual-kubelet/version"
+	"github.com/sylabs/virtual-kubelet/providers"
+	"github.com/sylabs/virtual-kubelet/version"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -29,7 +29,7 @@ import (
 
 var (
 	// vkVersion is a concatenation of the Kubernetes version the VK is built against, the string "vk" and the VK release version.
-	// TODO @pires revisit after VK 1.0 is released as agreed in https://github.com/virtual-kubelet/virtual-kubelet/pull/446#issuecomment-448423176.
+	// TODO @pires revisit after VK 1.0 is released as agreed in https://github.com/sylabs/virtual-kubelet/pull/446#issuecomment-448423176.
 	vkVersion = strings.Join([]string{"v1.13.1", "vk", version.Version}, "-")
 )
 

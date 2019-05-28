@@ -10,7 +10,7 @@ import (
 	"github.com/cpuguy83/strongerrors"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
-	"github.com/virtual-kubelet/virtual-kubelet/log"
+	"github.com/sylabs/virtual-kubelet/log"
 )
 
 // ContainerLogsHandlerFunc is used in place of backend implementations for getting container logs
@@ -30,6 +30,7 @@ func HandleContainerLogs(h ContainerLogsHandlerFunc) http.HandlerFunc {
 	if h == nil {
 		return NotImplemented
 	}
+
 	return handleError(func(w http.ResponseWriter, req *http.Request) error {
 		vars := mux.Vars(req)
 		if len(vars) != 3 {

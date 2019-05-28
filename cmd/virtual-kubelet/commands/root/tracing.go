@@ -24,8 +24,8 @@ import (
 
 	"github.com/cpuguy83/strongerrors"
 	"github.com/pkg/errors"
-	"github.com/virtual-kubelet/virtual-kubelet/log"
-	"github.com/virtual-kubelet/virtual-kubelet/trace/opencensus"
+	"github.com/sylabs/virtual-kubelet/log"
+	"github.com/sylabs/virtual-kubelet/trace/opencensus"
 	octrace "go.opencensus.io/trace"
 	"go.opencensus.io/zpages"
 )

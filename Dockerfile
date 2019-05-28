@@ -1,14 +1,14 @@
 FROM golang:1.12 as builder
 ENV PATH /go/bin:/usr/local/go/bin:$PATH
 ENV GOPATH /go
-COPY . /go/src/github.com/virtual-kubelet/virtual-kubelet
-WORKDIR /go/src/github.com/virtual-kubelet/virtual-kubelet
+COPY . /go/src/github.com/sylabs/virtual-kubelet
+WORKDIR /go/src/github.com/sylabs/virtual-kubelet
 ARG BUILD_TAGS=""
-RUN make VK_BUILD_TAGS="${BUILD_TAGS}" build
-RUN cp bin/virtual-kubelet /usr/bin/virtual-kubelet
+RUN CGO_ENABLED=0 go build -o main cmd/virtual-kubelet/main.go
 
 FROM scratch
-COPY --from=builder /usr/bin/virtual-kubelet /usr/bin/virtual-kubelet
+COPY --from=builder /go/src/github.com/sylabs/virtual-kubelet/main /app/
 COPY --from=builder /etc/ssl/certs/ /etc/ssl/certs
-ENTRYPOINT [ "/usr/bin/virtual-kubelet" ]
+WORKDIR /app
+ENTRYPOINT [ "./main" ]
 CMD [ "--help" ]
