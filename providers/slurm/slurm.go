@@ -196,8 +196,8 @@ func (p *SlurmProvider) GetPodStatus(ctx context.Context, namespace, name string
 
 	status := &v1.PodStatus{
 		Phase:  v1.PodRunning,
-		HostIP: "192.168.60.11",
-		PodIP:  "10.244.1.19",
+		HostIP: "1.2.3.4",
+		PodIP:  "5.6.7.8",
 		Conditions: []v1.PodCondition{
 			{
 				Type:   v1.PodInitialized,
@@ -240,9 +240,6 @@ func (p *SlurmProvider) GetPodStatus(ctx context.Context, namespace, name string
 		if err != nil {
 			return nil, errors.Wrapf(err, "can't get status for %s", pj.jobID)
 		}
-
-		status.ContainerStatuses[0].ContainerID = "f34f34f43f34f34f34f"
-		status.ContainerStatuses[0].ImageID = "f34f34f43f34f34f34f21dwqd"
 
 		status.Message = infoR.Info[0].Status.String()
 		if status.Message == "COMPLETED" {

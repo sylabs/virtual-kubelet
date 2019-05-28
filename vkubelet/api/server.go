@@ -21,7 +21,6 @@ type ServeMux interface {
 type PodHandlerConfig struct {
 	RunInContainer   ContainerExecHandlerFunc
 	GetContainerLogs ContainerLogsHandlerFunc
-	GetPodLogs       PodLogsHandlerFunc
 	GetPods          PodListerFunc
 }
 
@@ -35,7 +34,6 @@ func PodHandler(p PodHandlerConfig, debug bool) http.Handler {
 		r.HandleFunc("/runningpods/", HandleRunningPods(p.GetPods)).Methods("GET")
 	}
 	r.HandleFunc("/containerLogs/{namespace}/{pod}/{container}", HandleContainerLogs(p.GetContainerLogs)).Methods("GET")
-	r.HandleFunc("/namespaces/{namespace}/pods/{name}/log", HandlePodLogs(p.GetPodLogs)).Methods("GET")
 	r.HandleFunc("/exec/{namespace}/{pod}/{container}", HandleContainerExec(p.RunInContainer)).Methods("POST")
 	r.NotFoundHandler = http.HandlerFunc(NotFound)
 	return r
