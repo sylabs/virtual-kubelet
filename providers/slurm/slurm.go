@@ -35,8 +35,10 @@ var (
 )
 
 type podInfo struct {
-	jobID int64
-	pod   *v1.Pod
+	jobID   int64
+	jobInfo *sAPI.JobInfo
+
+	pod *v1.Pod
 }
 
 // SlurmProvider implements the virtual-kubelet provider interface by forwarding kubelet calls to a web endpoint.
@@ -55,7 +57,7 @@ type SlurmProvider struct {
 }
 
 // NewSlurmProvider creates a new SlurmProvider
-func NewSLurmProvider(nodeName, operatingSystem, internalIP string, daemonEndpointPort int32) (*SlurmProvider, error) {
+func NewSLURMProvider(nodeName, operatingSystem, internalIP string, daemonEndpointPort int32) (*SlurmProvider, error) {
 	conn, err := grpc.Dial("unix://"+redBoxSock, grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("can't connect to %s %s", redBoxSock, err)
@@ -78,7 +80,7 @@ func NewSLurmProvider(nodeName, operatingSystem, internalIP string, daemonEndpoi
 
 // CreatePod accepts a Pod definition and forwards the call to the web endpoint
 func (p *SlurmProvider) CreatePod(ctx context.Context, pod *v1.Pod) error {
-	log.Println("Create Pod")
+	log.Printf("Create Pod %s", podName(pod.Namespace, pod.Name))
 
 	var jobID int64
 
@@ -110,6 +112,7 @@ func (p *SlurmProvider) CreatePod(ctx context.Context, pod *v1.Pod) error {
 
 // UpdatePod accepts a Pod definition and forwards the call to the web endpoint
 func (p *SlurmProvider) UpdatePod(ctx context.Context, pod *v1.Pod) error {
+	log.Printf("Update pod %s", podName(pod.Namespace, pod.Name))
 	pi, ok := p.pods[podName(pod.Namespace, pod.Name)]
 	if !ok {
 		return errors.New("there is no requested pod")
@@ -151,11 +154,15 @@ func (p *SlurmProvider) GetContainerLogs(ctx context.Context, namespace, pName, 
 	}
 
 	infoR, err := p.slurmAPI.JobInfo(ctx, &sAPI.JobInfoRequest{JobId: pi.jobID})
-	if err != nil {
+	if err != nil && pi.jobInfo == nil {
 		return nil, errors.Wrap(err, "can't get slurm job info")
 	}
 
-	openResp, err := p.slurmAPI.OpenFile(context.Background(), &sAPI.OpenFileRequest{Path: infoR.Info[0].StdOut})
+	if infoR != nil {
+		pi.jobInfo = infoR.Info[0]
+	}
+
+	openResp, err := p.slurmAPI.OpenFile(context.Background(), &sAPI.OpenFileRequest{Path: pi.jobInfo.StdOut})
 	if err != nil {
 		return nil, errors.Wrap(err, "can't open slurm job log file")
 	}
@@ -219,6 +226,10 @@ func (p *SlurmProvider) GetPodStatus(ctx context.Context, namespace, name string
 	}
 
 	now := metav1.NewTime(time.Now())
+	if pod.Status.StartTime != nil {
+		now = *pod.Status.StartTime
+	}
+
 	for _, container := range pod.Spec.Containers {
 		status.ContainerStatuses = append(status.ContainerStatuses, v1.ContainerStatus{
 			Name:         container.Name,
@@ -239,6 +250,7 @@ func (p *SlurmProvider) GetPodStatus(ctx context.Context, namespace, name string
 		if err != nil {
 			return nil, errors.Wrapf(err, "can't get status for %s", pj.jobID)
 		}
+		pj.jobInfo = infoR.Info[0]
 
 		status.Message = infoR.Info[0].Status.String()
 		if status.Message == "COMPLETED" {

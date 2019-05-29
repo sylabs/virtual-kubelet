@@ -10,7 +10,7 @@ func init() {
 }
 
 func initSlurm(cfg InitConfig) (providers.Provider, error) {
-	return slurm.NewSLurmProvider(
+	return slurm.NewSLURMProvider(
 		cfg.NodeName,
 		cfg.OperatingSystem,
 		cfg.InternalIP,
