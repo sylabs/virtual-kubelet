@@ -19,7 +19,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
-	llog "log"
 	"net"
 	"net/http"
 	"os"
@@ -97,11 +96,8 @@ func setupHTTPServer(ctx context.Context, p providers.Provider, cfg *apiServerCo
 
 		s := &http.Server{
 			TLSConfig: tlsCfg,
+			Handler:   mux,
 		}
-		s.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			llog.Println(r.RequestURI)
-			mux.ServeHTTP(w, r)
-		})
 		go serveHTTP(ctx, s, l, "pods")
 		closers = append(closers, s)
 	}
