@@ -64,6 +64,13 @@ func NewSLURMProvider(nodeName, operatingSystem, internalIP string, daemonEndpoi
 	}
 	client := sAPI.NewWorkloadManagerClient(conn)
 
+	k8sC, err := newK8SClient()
+	if err != nil {
+		return nil, errors.Wrap(err, "can't create k8sClient")
+	}
+
+	go newWatchDog(k8sC, client, partition).watch()
+
 	provider := &SlurmProvider{
 		startTime: time.Now(),
 

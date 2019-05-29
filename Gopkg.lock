@@ -209,7 +209,7 @@
   version = "v1.36.0"
 
 [[projects]]
-  digest = "1:acba7f3d06725b78c6999c2ba6c40b80539c10346fe37b4681072f1666c87d0c"
+  digest = "1:37234906013da82d4c05666262eda5bdec8f736bafa7d4ec1fb3314e965b476f"
   name = "github.com/gogo/protobuf"
   packages = [
     "gogoproto",
@@ -238,7 +238,7 @@
   revision = "c65c006176ff7ff98bb916961c7abbc6b0afc0aa"
 
 [[projects]]
-  digest = "1:782d86fa8e552302d3f9c3f2a5ef6482d1f28ac52a69b5e1e14d9b71c8c9dda3"
+  digest = "1:dcb061e64676cf9b26e3f6339541b5b9b30d39e16e1d6dd12951e4770356debe"
   name = "github.com/golang/protobuf"
   packages = [
     "proto",
@@ -727,12 +727,11 @@
   version = "v1.0.1"
 
 [[projects]]
-  branch = "master"
-  digest = "1:f64e31e1749e2d296ab100ca48a16912001672707dd32f61b6db9211324f92a7"
+  branch = "staging"
   name = "github.com/sylabs/slurm-operator"
   packages = ["pkg/workload/api"]
   pruneopts = "NUT"
-  revision = "9dfef1a365fd75d3d7b7a14be2e65c5e68ccbfa6"
+  revision = "70ad00491563f7c8ae350db065feabe445589981"
 
 [[projects]]
   digest = "1:c20cebd4c498afb08178e3cb7e550762ee6d27663a81eb69436c4198c1d07cb4"
@@ -753,39 +752,6 @@
   pruneopts = "NUT"
   revision = "a846478f02b6b4219bf5bd8ea5d608513ef623f7"
   version = "v0.2.0"
-
-[[projects]]
-  branch = "master"
-  digest = "1:7cfd3b346cdab41208b4c00fab20755a5e59aec1fc60a31eb4599010a4d1d0df"
-  name = "github.com/virtual-kubelet/virtual-kubelet"
-  packages = [
-    "log",
-    "log/logrus",
-    "manager",
-    "providers",
-    "providers/alibabacloud",
-    "providers/alibabacloud/eci",
-    "providers/aws",
-    "providers/aws/fargate",
-    "providers/azure",
-    "providers/azurebatch",
-    "providers/cri",
-    "providers/huawei",
-    "providers/huawei/auth",
-    "providers/mock",
-    "providers/nomad",
-    "providers/openstack",
-    "providers/web",
-    "test/e2e/framework",
-    "test/util",
-    "trace",
-    "trace/opencensus",
-    "version",
-    "vkubelet",
-    "vkubelet/api",
-  ]
-  pruneopts = "NUT"
-  revision = "42061ea1bc2ff5622b157274f6142f17f4db21fb"
 
 [[projects]]
   digest = "1:a3cb0432171318ddfe4c7cc40c6edf94cb6a61859ffa5cec27f4d5162dfc4db7"
@@ -1397,30 +1363,6 @@
     "github.com/virtual-kubelet/azure-aci/client/aci",
     "github.com/virtual-kubelet/azure-aci/client/api",
     "github.com/virtual-kubelet/azure-aci/client/network",
-    "github.com/virtual-kubelet/virtual-kubelet/log",
-    "github.com/virtual-kubelet/virtual-kubelet/log/logrus",
-    "github.com/virtual-kubelet/virtual-kubelet/manager",
-    "github.com/virtual-kubelet/virtual-kubelet/providers",
-    "github.com/virtual-kubelet/virtual-kubelet/providers/alibabacloud",
-    "github.com/virtual-kubelet/virtual-kubelet/providers/alibabacloud/eci",
-    "github.com/virtual-kubelet/virtual-kubelet/providers/aws",
-    "github.com/virtual-kubelet/virtual-kubelet/providers/aws/fargate",
-    "github.com/virtual-kubelet/virtual-kubelet/providers/azure",
-    "github.com/virtual-kubelet/virtual-kubelet/providers/azurebatch",
-    "github.com/virtual-kubelet/virtual-kubelet/providers/cri",
-    "github.com/virtual-kubelet/virtual-kubelet/providers/huawei",
-    "github.com/virtual-kubelet/virtual-kubelet/providers/huawei/auth",
-    "github.com/virtual-kubelet/virtual-kubelet/providers/mock",
-    "github.com/virtual-kubelet/virtual-kubelet/providers/nomad",
-    "github.com/virtual-kubelet/virtual-kubelet/providers/openstack",
-    "github.com/virtual-kubelet/virtual-kubelet/providers/web",
-    "github.com/virtual-kubelet/virtual-kubelet/test/e2e/framework",
-    "github.com/virtual-kubelet/virtual-kubelet/test/util",
-    "github.com/virtual-kubelet/virtual-kubelet/trace",
-    "github.com/virtual-kubelet/virtual-kubelet/trace/opencensus",
-    "github.com/virtual-kubelet/virtual-kubelet/version",
-    "github.com/virtual-kubelet/virtual-kubelet/vkubelet",
-    "github.com/virtual-kubelet/virtual-kubelet/vkubelet/api",
     "go.opencensus.io/exporter/jaeger",
     "go.opencensus.io/plugin/ochttp",
     "go.opencensus.io/plugin/ochttp/propagation/b3",
