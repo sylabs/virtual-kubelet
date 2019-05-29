@@ -95,7 +95,8 @@ func (p *SlurmProvider) CreatePod(ctx context.Context, pod *v1.Pod) error {
 		batchScript := pod.Spec.Containers[0].Args[0]
 
 		resp, err := p.slurmAPI.SubmitJob(ctx, &sAPI.SubmitJobRequest{
-			Script: batchScript,
+			Partition: partition,
+			Script:    batchScript,
 		})
 		if err != nil {
 			return errors.Wrap(err, "can't submit batch script")
