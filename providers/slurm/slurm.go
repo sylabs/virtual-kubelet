@@ -23,7 +23,7 @@ import (
 )
 
 const (
-	SlurmJobKind = "SlurmJob"
+	slurmJobKind = "SlurmJob"
 )
 
 var (
@@ -84,7 +84,7 @@ func (p *SlurmProvider) CreatePod(ctx context.Context, pod *v1.Pod) error {
 
 	var jobID int64
 
-	if len(pod.OwnerReferences) == 1 && pod.OwnerReferences[0].Kind == SlurmJobKind {
+	if len(pod.OwnerReferences) == 1 && pod.OwnerReferences[0].Kind == slurmJobKind {
 		batchScript := pod.Spec.Containers[0].Args[0]
 
 		resp, err := p.slurmAPI.SubmitJob(ctx, &sAPI.SubmitJobRequest{
@@ -252,9 +252,11 @@ func (p *SlurmProvider) GetPodStatus(ctx context.Context, namespace, name string
 		}
 		pj.jobInfo = infoR.Info[0]
 
-		status.Message = infoR.Info[0].Status.String()
-		if status.Message == "COMPLETED" {
+		switch infoR.Info[0].Status {
+		case sAPI.JobStatus_COMPLETED:
 			status.Phase = v1.PodSucceeded
+		case sAPI.JobStatus_FAILED, sAPI.JobStatus_CANCELLED:
+			status.Phase = v1.PodFailed
 		}
 	}
 
