@@ -9,6 +9,7 @@ import (
 	"github.com/sylabs/virtual-kubelet/vkubelet/api"
 	"google.golang.org/grpc"
 	"io"
+	"io/ioutil"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,6 +18,7 @@ import (
 	"math/rand"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -138,19 +140,14 @@ func (p *SlurmProvider) GetPod(ctx context.Context, namespace, name string) (*v1
 // GetContainerLogs returns the logs of a container running in a pod by name.
 func (p *SlurmProvider) GetContainerLogs(ctx context.Context, namespace, pName, containerName string, opts api.ContainerLogOpts) (io.ReadCloser, error) {
 	log.Printf("GetContainerLogs n:%s pod:%s containerName:%s", namespace, pName, containerName)
-	return nil, nil
-}
 
-func (p *SlurmProvider) GetPodLogs(ctx context.Context, namespace, pod string, opts api.ContainerLogOpts) (io.ReadCloser, error) {
-	log.Printf("GetPodLogs n:%s pod:%s", namespace, pod)
-
-	pi, ok := p.pods[podName(namespace, pod)]
+	pi, ok := p.pods[podName(namespace, pName)]
 	if !ok {
 		return nil, errors.New("there is no requested pod")
 	}
 
 	if pi.jobID == 0 { //skipping not slurm jobs
-		return nil, nil
+		return ioutil.NopCloser(strings.NewReader("")), nil
 	}
 
 	infoR, err := p.slurmAPI.JobInfo(ctx, &sAPI.JobInfoRequest{JobId: pi.jobID})
@@ -158,25 +155,27 @@ func (p *SlurmProvider) GetPodLogs(ctx context.Context, namespace, pod string, o
 		return nil, errors.Wrap(err, "can't get slurm job info")
 	}
 
-	openResp, err := p.slurmAPI.OpenFile(ctx, &sAPI.OpenFileRequest{Path: infoR.Info[0].StdOut})
+	openResp, err := p.slurmAPI.OpenFile(context.Background(), &sAPI.OpenFileRequest{Path: infoR.Info[0].StdOut})
 	if err != nil {
 		return nil, errors.Wrap(err, "can't open slurm job log file")
 	}
 
-	read := func() ([]byte, error) {
+	buff := &bytes.Buffer{}
+	for {
 		c, err := openResp.Recv()
 		if c != nil {
-			return c.Content, err
+			_, err := buff.Write(c.Content)
+			if err != nil {
+				break
+			}
 		}
 
-		return nil, err
+		if err != nil {
+			break
+		}
 	}
 
-	close := func() error {
-		return openResp.CloseSend()
-	}
-
-	return newGRPCReader(read, close)
+	return ioutil.NopCloser(buff), nil
 }
 
 // Get full pod name as defined in the provider context
@@ -387,47 +386,4 @@ func (p *SlurmProvider) GetStatsSummary(ctx context.Context) (*stats.Summary, er
 
 func podName(namespace, name string) string {
 	return fmt.Sprintf("%s-%s", namespace, name)
-}
-
-type grpcReader struct {
-	*bytes.Buffer
-
-	read  func() ([]byte, error)
-	close func() error
-}
-
-func newGRPCReader(read func() ([]byte, error), close func() error) (*grpcReader, error) {
-	reader := &grpcReader{
-		Buffer: &bytes.Buffer{},
-		read:   read,
-		close:  close,
-	}
-
-	go reader.startRead()
-
-	return reader, nil
-}
-
-func (r *grpcReader) Close() error {
-	if r.close != nil {
-		if err := r.close(); err != nil {
-			return errors.Wrap(err, "inside close callback")
-		}
-	}
-
-	return nil
-}
-
-func (r *grpcReader) startRead() {
-	for {
-		b, err := r.read()
-		if b != nil && len(b) != 0 {
-			r.Buffer.Write(b)
-		}
-
-		if err != nil {
-			log.Printf("grpc reader finished from err: %s", err)
-			return
-		}
-	}
 }

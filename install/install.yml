@@ -102,6 +102,10 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.name
+        - name: VKUBELET_POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
         - name: RED_BOX_SOCK
           value: "/red-box.sock"
         - name: APISERVER_CERT_LOCATION
@@ -111,8 +115,6 @@ spec:
       ports:
         - name: metrics
           containerPort: 10255
-        - name: kubelet-port
-          containerPort: 10250
       readinessProbe:
         httpGet:
           path: /stats/summary
