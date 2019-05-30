@@ -28,6 +28,7 @@ rules:
       - list
       - watch
       - patch
+      - create
   - apiGroups:
       - ""
     resources:
@@ -102,7 +103,7 @@ spec:
         - name: kubelet-key
           mountPath: /kubelet.key
       env:
-        - name: VK_NODE_NAME
+        - name: VK_HOST_NAME
           valueFrom:
             fieldRef:
               fieldPath: spec.nodeName

@@ -5,15 +5,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/sylabs/slurm-operator/pkg/workload/api"
 	"log"
 	"strconv"
 	"time"
 
+	"github.com/sylabs/slurm-operator/pkg/workload/api"
+
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/types"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/client-go/rest"
 )
 
 const (
@@ -32,18 +32,8 @@ type k8sClient struct {
 }
 
 // newK8SClient fetches k8s config and initializes core client based on it.
-func newK8SClient() (*k8sClient, error) {
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		return nil, fmt.Errorf("could not fetch cluster config: %v", err)
-	}
-
-	coreClient, err := corev1.NewForConfig(config)
-	if err != nil {
-		return nil, fmt.Errorf("could not create core client: %v", err)
-	}
-
-	return &k8sClient{coreClient: coreClient}, nil
+func newK8SClient(c *corev1.CoreV1Client) (*k8sClient, error) {
+	return &k8sClient{coreClient: c}, nil
 }
 
 // AddNodeResources adds passed resources to node capacity.

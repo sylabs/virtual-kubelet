@@ -13,6 +13,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sylabs/slurm-operator/pkg/operator/apis/slurm/v1alpha1"
+
 	"github.com/pkg/errors"
 
 	"github.com/sylabs/slurm-operator/pkg/operator/client/clientset/versioned"
@@ -24,6 +26,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 	stats "k8s.io/kubernetes/pkg/kubelet/apis/stats/v1alpha1"
 )
@@ -33,6 +36,7 @@ const (
 )
 
 var (
+	vkHostNode = os.Getenv("VK_HOST_NAME")
 	vkPodName  = os.Getenv("VK_POD_NAME")
 	partition  = os.Getenv("PARTITION")
 	redBoxSock = os.Getenv("RED_BOX_SOCK")
@@ -43,6 +47,7 @@ var (
 type podInfo struct {
 	jobID   int64
 	jobInfo *sAPI.JobInfo
+	jobSpec *v1alpha1.SlurmJobSpec
 
 	pod *v1.Pod
 }
@@ -60,6 +65,8 @@ type SlurmProvider struct {
 	slurmAPI  sAPI.WorkloadManagerClient
 	slurmJobC *versioned.Clientset
 
+	coreC *corev1.CoreV1Client
+
 	pods map[string]*podInfo
 }
 
@@ -71,17 +78,22 @@ func NewSLURMProvider(nodeName, operatingSystem, internalIP string, daemonEndpoi
 	}
 	client := sAPI.NewWorkloadManagerClient(conn)
 
-	k8sC, err := newK8SClient()
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		return nil, fmt.Errorf("can't fetch cluster config: %v", err)
+	}
+
+	coreC, err := corev1.NewForConfig(config)
+	if err != nil {
+		return nil, fmt.Errorf("could not create core client: %v", err)
+	}
+
+	k8sC, err := newK8SClient(coreC)
 	if err != nil {
 		return nil, errors.Wrap(err, "can't create k8sClient")
 	}
 
 	go newWatchDog(k8sC, client, partition).watch()
-
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		return nil, fmt.Errorf("can't fetch cluster config: %v", err)
-	}
 
 	slurmC, err := versioned.NewForConfig(config)
 	if err != nil {
@@ -97,6 +109,7 @@ func NewSLURMProvider(nodeName, operatingSystem, internalIP string, daemonEndpoi
 		daemonEndpointPort: daemonEndpointPort,
 		slurmAPI:           client,
 		slurmJobC:          slurmC,
+		coreC:              coreC,
 		pods:               make(map[string]*podInfo),
 	}
 
@@ -108,6 +121,7 @@ func (p *SlurmProvider) CreatePod(ctx context.Context, pod *v1.Pod) error {
 	log.Printf("Create Pod %s", podName(pod.Namespace, pod.Name))
 
 	var jobID int64
+	var jobSpec *v1alpha1.SlurmJobSpec
 
 	if len(pod.OwnerReferences) == 1 && pod.OwnerReferences[0].Kind == slurmJobKind {
 		sj, err := p.slurmJobC.SlurmV1alpha1().
@@ -116,6 +130,8 @@ func (p *SlurmProvider) CreatePod(ctx context.Context, pod *v1.Pod) error {
 		if err != nil {
 			return errors.Wrap(err, "can't get slurm job")
 		}
+
+		jobSpec = &sj.Spec
 
 		resp, err := p.slurmAPI.SubmitJob(ctx, &sAPI.SubmitJobRequest{
 			Partition: partition,
@@ -134,8 +150,9 @@ func (p *SlurmProvider) CreatePod(ctx context.Context, pod *v1.Pod) error {
 	pod.Status.StartTime = &now
 
 	p.pods[podName(pod.Namespace, pod.Name)] = &podInfo{
-		jobID: jobID,
-		pod:   pod,
+		jobID:   jobID,
+		jobSpec: jobSpec,
+		pod:     pod,
 	}
 
 	return nil
@@ -286,6 +303,11 @@ func (p *SlurmProvider) GetPodStatus(ctx context.Context, namespace, name string
 		switch infoR.Info[0].Status {
 		case sAPI.JobStatus_COMPLETED:
 			status.Phase = v1.PodSucceeded
+			if pj.jobSpec.Results != nil {
+				if err := p.startCollectingResultsPod(pj.pod, pj.jobSpec.Results); err != nil {
+					log.Printf("can't collect job results err: %s", err)
+				}
+			}
 		case sAPI.JobStatus_FAILED, sAPI.JobStatus_CANCELLED:
 			status.Phase = v1.PodFailed
 		}
@@ -427,6 +449,59 @@ func (p *SlurmProvider) GetStatsSummary(ctx context.Context) (*stats.Summary, er
 
 	// Return the dummy stats.
 	return res, nil
+}
+
+func (p *SlurmProvider) startCollectingResultsPod(pod *v1.Pod, r *v1alpha1.SlurmJobResults) error {
+	collectPod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      pod.Name + "-collect",
+			Namespace: pod.Namespace,
+		},
+		Spec: v1.PodSpec{
+			Containers: []v1.Container{
+				{
+					Name:            "cr1",
+					Image:           "cloud.sylabs.io/library/slurm/results:staging",
+					ImagePullPolicy: v1.PullAlways,
+					Args: []string{
+						fmt.Sprintf("--from=%s", r.From),
+						"--to=/collect",
+						"--sock=/red-box.sock",
+					},
+					VolumeMounts: []v1.VolumeMount{
+						{
+							Name:      "red-box-sock",
+							MountPath: "/red-box.sock",
+						},
+						{
+							Name:      r.Mount.Name,
+							MountPath: "/collect",
+						},
+					},
+				},
+			},
+			Volumes: []v1.Volume{
+				{
+					Name: "red-box-sock",
+					VolumeSource: v1.VolumeSource{
+						HostPath: &v1.HostPathVolumeSource{
+							Path: "/var/run/syslurm/red-box.sock",
+							Type: &[]v1.HostPathType{v1.HostPathSocket}[0],
+						},
+					},
+				},
+				r.Mount,
+			},
+			NodeSelector: map[string]string{
+				"kubernetes.io/hostname": vkHostNode,
+			},
+			RestartPolicy: v1.RestartPolicyNever,
+		},
+	}
+	collectPod.OwnerReferences = pod.OwnerReferences
+
+	_, err := p.coreC.Pods(pod.Namespace).Create(collectPod)
+	return errors.Wrap(err, "can't create collect results pod")
 }
 
 func podName(namespace, name string) string {

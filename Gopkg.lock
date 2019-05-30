@@ -268,7 +268,7 @@
   version = "v0.19.0"
 
 [[projects]]
-  digest = "0:"
+  digest = "1:37234906013da82d4c05666262eda5bdec8f736bafa7d4ec1fb3314e965b476f"
   name = "github.com/gogo/protobuf"
   packages = [
     "gogoproto",
@@ -297,7 +297,7 @@
   revision = "c65c006176ff7ff98bb916961c7abbc6b0afc0aa"
 
 [[projects]]
-  digest = "0:"
+  digest = "1:dcb061e64676cf9b26e3f6339541b5b9b30d39e16e1d6dd12951e4770356debe"
   name = "github.com/golang/protobuf"
   packages = [
     "proto",
@@ -799,7 +799,7 @@
 
 [[projects]]
   branch = "staging"
-  digest = "1:7e053d2e12c0fda77c3b9135c15fb41d309be01c312bcb586fda2598d509aff4"
+  digest = "0:"
   name = "github.com/sylabs/slurm-operator"
   packages = [
     "pkg/operator/apis/slurm/v1alpha1",
@@ -1448,6 +1448,7 @@
     "github.com/sirupsen/logrus",
     "github.com/spf13/cobra",
     "github.com/spf13/pflag",
+    "github.com/sylabs/slurm-operator/pkg/operator/apis/slurm/v1alpha1",
     "github.com/sylabs/slurm-operator/pkg/operator/client/clientset/versioned",
     "github.com/sylabs/slurm-operator/pkg/workload/api",
     "github.com/virtual-kubelet/azure-aci/client",
