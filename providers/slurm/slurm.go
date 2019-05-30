@@ -293,7 +293,7 @@ func (p *SlurmProvider) GetPodStatus(ctx context.Context, namespace, name string
 	}
 
 	pj, ok := p.pods[podName(namespace, name)]
-	if ok && pj.jobID != 0 {
+	if ok && pj.jobID != 0 { // we need only Slurm jobs
 		infoR, err := p.slurmAPI.JobInfo(ctx, &sAPI.JobInfoRequest{JobId: pj.jobID})
 		if err != nil {
 			return nil, errors.Wrapf(err, "can't get status for %s", pj.jobID)
@@ -302,6 +302,9 @@ func (p *SlurmProvider) GetPodStatus(ctx context.Context, namespace, name string
 
 		switch infoR.Info[0].Status {
 		case sAPI.JobStatus_COMPLETED:
+			status.ContainerStatuses[0].State.Terminated = &v1.ContainerStateTerminated{
+				Reason: "Job finished",
+			}
 			status.Phase = v1.PodSucceeded
 			if pj.jobSpec.Results != nil {
 				if err := p.startCollectingResultsPod(pj.pod, pj.jobSpec.Results); err != nil {
@@ -498,7 +501,7 @@ func (p *SlurmProvider) startCollectingResultsPod(pod *v1.Pod, r *v1alpha1.Slurm
 			RestartPolicy: v1.RestartPolicyNever,
 		},
 	}
-	collectPod.OwnerReferences = pod.OwnerReferences
+	collectPod.OwnerReferences = pod.OwnerReferences //allows k8s to delete pod after parent SlurmJob kind be deleted
 
 	_, err := p.coreC.Pods(pod.Namespace).Create(collectPod)
 	return errors.Wrap(err, "can't create collect results pod")
