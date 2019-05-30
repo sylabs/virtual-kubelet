@@ -4,22 +4,28 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/pkg/errors"
-	sAPI "github.com/sylabs/slurm-operator/pkg/workload/api"
-	"github.com/sylabs/virtual-kubelet/vkubelet/api"
-	"google.golang.org/grpc"
 	"io"
 	"io/ioutil"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	stats "k8s.io/kubernetes/pkg/kubelet/apis/stats/v1alpha1"
 	"log"
 	"math/rand"
 	"net/url"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
+
+	"github.com/sylabs/slurm-operator/pkg/operator/client/clientset/versioned"
+	sAPI "github.com/sylabs/slurm-operator/pkg/workload/api"
+	"github.com/sylabs/virtual-kubelet/vkubelet/api"
+
+	"google.golang.org/grpc"
+
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/rest"
+	stats "k8s.io/kubernetes/pkg/kubelet/apis/stats/v1alpha1"
 )
 
 const (
@@ -51,7 +57,8 @@ type SlurmProvider struct {
 	daemonEndpointPort int32
 	internalIP         string
 
-	slurmAPI sAPI.WorkloadManagerClient
+	slurmAPI  sAPI.WorkloadManagerClient
+	slurmJobC *versioned.Clientset
 
 	pods map[string]*podInfo
 }
@@ -71,6 +78,16 @@ func NewSLURMProvider(nodeName, operatingSystem, internalIP string, daemonEndpoi
 
 	go newWatchDog(k8sC, client, partition).watch()
 
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		return nil, fmt.Errorf("can't fetch cluster config: %v", err)
+	}
+
+	slurmC, err := versioned.NewForConfig(config)
+	if err != nil {
+		return nil, fmt.Errorf("can't create slurm client set")
+	}
+
 	provider := &SlurmProvider{
 		startTime: time.Now(),
 
@@ -79,6 +96,7 @@ func NewSLURMProvider(nodeName, operatingSystem, internalIP string, daemonEndpoi
 		internalIP:         internalIP,
 		daemonEndpointPort: daemonEndpointPort,
 		slurmAPI:           client,
+		slurmJobC:          slurmC,
 		pods:               make(map[string]*podInfo),
 	}
 
@@ -92,11 +110,16 @@ func (p *SlurmProvider) CreatePod(ctx context.Context, pod *v1.Pod) error {
 	var jobID int64
 
 	if len(pod.OwnerReferences) == 1 && pod.OwnerReferences[0].Kind == slurmJobKind {
-		batchScript := pod.Spec.Containers[0].Args[0]
+		sj, err := p.slurmJobC.SlurmV1alpha1().
+			SlurmJobs(pod.Namespace).
+			Get(pod.OwnerReferences[0].Name, metav1.GetOptions{})
+		if err != nil {
+			return errors.Wrap(err, "can't get slurm job")
+		}
 
 		resp, err := p.slurmAPI.SubmitJob(ctx, &sAPI.SubmitJobRequest{
 			Partition: partition,
-			Script:    batchScript,
+			Script:    sj.Spec.Batch,
 		})
 		if err != nil {
 			return errors.Wrap(err, "can't submit batch script")

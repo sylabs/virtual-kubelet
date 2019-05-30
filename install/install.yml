@@ -57,6 +57,13 @@ rules:
     verbs:
       - create
       - patch
+  - apiGroups:
+      - ""
+      - slurm.sylabs.io
+      resources:
+        - slurmjobs
+      verbs:
+        - get
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
