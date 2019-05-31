@@ -148,7 +148,7 @@ func (wd *watchDog) watch() {
 		}
 		if len(labelsToRemove) != 0 {
 			if err := wd.k8s.RemoveNodeLabels(vkPodName, labelsToRemove); err != nil {
-				log.Printf("Can't remove old feature labels")
+				log.Printf("can't remove old feature labels")
 			}
 		}
 
