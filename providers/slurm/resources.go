@@ -17,7 +17,8 @@ import (
 )
 
 const (
-	opAdd = "add"
+	opAdd    = "add"
+	opRemove = "remove"
 )
 
 type operation struct {
@@ -88,10 +89,37 @@ func (c *nodePatcher) AddNodeLabels(nodeName string, labels map[string]string) e
 	return nil
 }
 
+// RemoveNodeLabels removes nodes labels from node
+func (c *nodePatcher) RemoveNodeLabels(nodeName string, labels map[string]string) error {
+	const k8sLabelT = "/metadata/labels/slurm.sylabs.io~1%s"
+
+	ops := make([]operation, 0, len(labels))
+	for k := range labels {
+		op := operation{
+			Op:   opRemove,
+			Path: fmt.Sprintf(k8sLabelT, k),
+		}
+		ops = append(ops, op)
+	}
+
+	var buff bytes.Buffer
+	if err := json.NewEncoder(&buff).Encode(ops); err != nil {
+		return errors.Wrap(err, "could not encode labels patch")
+	}
+
+	_, err := c.coreClient.Nodes().Patch(nodeName, types.JSONPatchType, buff.Bytes())
+	if err != nil {
+		return errors.Wrap(err, "could not patch node labels")
+	}
+	return nil
+}
+
 type watchDog struct {
 	k8s       *nodePatcher
 	slurmC    api.WorkloadManagerClient
 	partition string
+
+	prevFeatures []*api.Feature
 }
 
 func newWatchDog(k8s *nodePatcher, c api.WorkloadManagerClient, partition string) *watchDog {
@@ -106,11 +134,24 @@ func (wd *watchDog) watch() {
 	log.Println("Watch dog started")
 	for {
 		time.Sleep(10 * time.Second)
+
 		resResp, err := wd.slurmC.Resources(context.Background(), &api.ResourcesRequest{Partition: partition})
 		if err != nil {
 			log.Printf("can't get resources err: %s", err)
 			continue
 		}
+
+		// clean up old labels
+		labelsToRemove := make(map[string]string)
+		for _, f := range wd.prevFeatures {
+			labelsToRemove[getFeatureKey(f)] = strconv.FormatInt(f.Quantity, 10)
+		}
+		if len(labelsToRemove) != 0 {
+			if err := wd.k8s.RemoveNodeLabels(vkPodName, labelsToRemove); err != nil {
+				log.Printf("Can't remove old feature labels")
+			}
+		}
+
 		labels := map[string]string{
 			"nodes":        strconv.FormatInt(resResp.Nodes, 10),
 			"wall-time":    strconv.FormatInt(resResp.WallTime, 10),
@@ -125,6 +166,8 @@ func (wd *watchDog) watch() {
 		if err := wd.k8s.AddNodeLabels(vkPodName, labels); err != nil {
 			log.Printf("can't add node labes err: %s", err)
 		}
+
+		wd.prevFeatures = resResp.Features
 	}
 }
 
@@ -133,5 +176,5 @@ func getFeatureKey(f *api.Feature) string {
 		return f.Name
 	}
 
-	return fmt.Sprintf("%s:%s", f.Name, f.Version)
+	return fmt.Sprintf("%s_%s", f.Name, f.Version)
 }
