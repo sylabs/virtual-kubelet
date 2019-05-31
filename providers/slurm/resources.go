@@ -26,18 +26,18 @@ type operation struct {
 	Value string `json:"value"`
 }
 
-// k8sClient provides convenient API for interacting with k8s core API.
-type k8sClient struct {
+// nodePatcher provides convenient API for patching k8s node labels and resources
+type nodePatcher struct {
 	coreClient *corev1.CoreV1Client
 }
 
-// newK8SClient fetches k8s config and initializes core client based on it.
-func newK8SClient(c *corev1.CoreV1Client) (*k8sClient, error) {
-	return &k8sClient{coreClient: c}, nil
+// newNodePatcher creates new nodePatcher
+func newNodePatcher(c *corev1.CoreV1Client) (*nodePatcher, error) {
+	return &nodePatcher{coreClient: c}, nil
 }
 
 // AddNodeResources adds passed resources to node capacity.
-func (c *k8sClient) AddNodeResources(nodeName string, resources map[string]int) error {
+func (c *nodePatcher) AddNodeResources(nodeName string, resources map[string]int) error {
 	// https://kubernetes.io/docs/tasks/administer-cluster/extended-resource-node/
 	const k8sResourceT = "/status/capacity/slurm.sylabs.io~1%s"
 
@@ -63,7 +63,7 @@ func (c *k8sClient) AddNodeResources(nodeName string, resources map[string]int) 
 }
 
 // AddNodeLabels adds passed labels to node labels.
-func (c *k8sClient) AddNodeLabels(nodeName string, labels map[string]string) error {
+func (c *nodePatcher) AddNodeLabels(nodeName string, labels map[string]string) error {
 	const k8sLabelT = "/metadata/labels/slurm.sylabs.io~1%s"
 
 	ops := make([]operation, 0, len(labels))
@@ -89,12 +89,12 @@ func (c *k8sClient) AddNodeLabels(nodeName string, labels map[string]string) err
 }
 
 type watchDog struct {
-	k8s       *k8sClient
+	k8s       *nodePatcher
 	slurmC    api.WorkloadManagerClient
 	partition string
 }
 
-func newWatchDog(k8s *k8sClient, c api.WorkloadManagerClient, partition string) *watchDog {
+func newWatchDog(k8s *nodePatcher, c api.WorkloadManagerClient, partition string) *watchDog {
 	return &watchDog{
 		k8s:       k8s,
 		slurmC:    c,
@@ -111,14 +111,27 @@ func (wd *watchDog) watch() {
 			log.Printf("can't get resources err: %s", err)
 			continue
 		}
-
-		if err := wd.k8s.AddNodeLabels(vkPodName, map[string]string{
+		labels := map[string]string{
 			"nodes":        strconv.FormatInt(resResp.Nodes, 10),
 			"wall-time":    strconv.FormatInt(resResp.WallTime, 10),
 			"cpu-per-node": strconv.FormatInt(resResp.CpuPerNode, 10),
 			"mem-per-node": strconv.FormatInt(resResp.MemPerNode, 10),
-		}); err != nil {
+		}
+
+		for _, f := range resResp.Features {
+			labels[getFeatureKey(f)] = strconv.FormatInt(f.Quantity, 10)
+		}
+
+		if err := wd.k8s.AddNodeLabels(vkPodName, labels); err != nil {
 			log.Printf("can't add node labes err: %s", err)
 		}
 	}
+}
+
+func getFeatureKey(f *api.Feature) string {
+	if f.Version == "" {
+		return f.Name
+	}
+
+	return fmt.Sprintf("%s:%s", f.Name, f.Version)
 }

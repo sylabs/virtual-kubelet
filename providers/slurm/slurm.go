@@ -52,7 +52,7 @@ type podInfo struct {
 	pod *v1.Pod
 }
 
-// SlurmProvider implements the virtual-kubelet provider interface by forwarding kubelet calls to a web endpoint.
+// SlurmProvider implements the virtual-kubelet provider interface by forwarding kubelet calls to a slurm cluster
 type SlurmProvider struct {
 	startTime time.Time
 
@@ -70,31 +70,36 @@ type SlurmProvider struct {
 	pods map[string]*podInfo
 }
 
-// NewSlurmProvider creates a new SlurmProvider
+// NewSLURMProvider creates a new SlurmProvider
+// Start watch dog for updating nodes resources
 func NewSLURMProvider(nodeName, operatingSystem, internalIP string, daemonEndpointPort int32) (*SlurmProvider, error) {
 	conn, err := grpc.Dial("unix://"+redBoxSock, grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("can't connect to %s %s", redBoxSock, err)
 	}
-	client := sAPI.NewWorkloadManagerClient(conn)
+	redBoxClient := sAPI.NewWorkloadManagerClient(conn)
 
+	// gettings k8s config
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		return nil, fmt.Errorf("can't fetch cluster config: %v", err)
 	}
 
+	// corev1 client set is required to create collecting results pod
 	coreC, err := corev1.NewForConfig(config)
 	if err != nil {
 		return nil, fmt.Errorf("could not create core client: %v", err)
 	}
 
-	k8sC, err := newK8SClient(coreC)
+	nodePatcher, err := newNodePatcher(coreC)
 	if err != nil {
-		return nil, errors.Wrap(err, "can't create k8sClient")
+		return nil, errors.Wrap(err, "can't create nodePatcher")
 	}
 
-	go newWatchDog(k8sC, client, partition).watch()
+	// start updating nodes labels (cpu per node, mem per node, nodes, features)
+	go newWatchDog(nodePatcher, redBoxClient, partition).watch()
 
+	// SlurmJob ClientSet
 	slurmC, err := versioned.NewForConfig(config)
 	if err != nil {
 		return nil, fmt.Errorf("can't create slurm client set")
@@ -107,7 +112,7 @@ func NewSLURMProvider(nodeName, operatingSystem, internalIP string, daemonEndpoi
 		operatingSystem:    operatingSystem,
 		internalIP:         internalIP,
 		daemonEndpointPort: daemonEndpointPort,
-		slurmAPI:           client,
+		slurmAPI:           redBoxClient,
 		slurmJobC:          slurmC,
 		coreC:              coreC,
 		pods:               make(map[string]*podInfo),
@@ -116,7 +121,9 @@ func NewSLURMProvider(nodeName, operatingSystem, internalIP string, daemonEndpoi
 	return provider, nil
 }
 
-// CreatePod accepts a Pod definition and forwards the call to the web endpoint
+// CreatePod stores pod
+// if pod owner is SlurmJob it starts job on Slurm cluster
+// other pods will not be launched
 func (p *SlurmProvider) CreatePod(ctx context.Context, pod *v1.Pod) error {
 	log.Printf("Create Pod %s", podName(pod.Namespace, pod.Name))
 
@@ -158,7 +165,7 @@ func (p *SlurmProvider) CreatePod(ctx context.Context, pod *v1.Pod) error {
 	return nil
 }
 
-// UpdatePod accepts a Pod definition and forwards the call to the web endpoint
+// UpdatePod updates pod
 func (p *SlurmProvider) UpdatePod(ctx context.Context, pod *v1.Pod) error {
 	log.Printf("Update pod %s", podName(pod.Namespace, pod.Name))
 	pi, ok := p.pods[podName(pod.Namespace, pod.Name)]
@@ -170,14 +177,14 @@ func (p *SlurmProvider) UpdatePod(ctx context.Context, pod *v1.Pod) error {
 	return nil
 }
 
-// DeletePod accepts a Pod definition and forwards the call to the web endpoint
+// DeletePod deletes pod
 func (p *SlurmProvider) DeletePod(ctx context.Context, pod *v1.Pod) error {
 	log.Printf("Delete %s", podName(pod.Namespace, pod.Name))
 	delete(p.pods, podName(pod.Namespace, pod.Name))
 	return nil
 }
 
-// GetPod returns a pod by name that is being managed by the web server
+// GetPod returns a pod
 func (p *SlurmProvider) GetPod(ctx context.Context, namespace, name string) (*v1.Pod, error) {
 	log.Printf("Get Pod %s", podName(namespace, name))
 	pj, ok := p.pods[podName(namespace, name)]
@@ -188,7 +195,8 @@ func (p *SlurmProvider) GetPod(ctx context.Context, namespace, name string) (*v1
 	return pj.pod, nil
 }
 
-// GetContainerLogs returns the logs of a container running in a pod by name.
+// GetContainerLogs returns logs if requeted pod is SlurmJob
+// otherwise returns empty reader
 func (p *SlurmProvider) GetContainerLogs(ctx context.Context, namespace, pName, containerName string, opts api.ContainerLogOpts) (io.ReadCloser, error) {
 	log.Printf("GetContainerLogs n:%s pod:%s containerName:%s", namespace, pName, containerName)
 
@@ -296,7 +304,7 @@ func (p *SlurmProvider) GetPodStatus(ctx context.Context, namespace, name string
 	if ok && pj.jobID != 0 { // we need only Slurm jobs
 		infoR, err := p.slurmAPI.JobInfo(ctx, &sAPI.JobInfoRequest{JobId: pj.jobID})
 		if err != nil {
-			return nil, errors.Wrapf(err, "can't get status for %s", pj.jobID)
+			return nil, errors.Wrapf(err, "can't get status for %d", pj.jobID)
 		}
 		pj.jobInfo = infoR.Info[0]
 
@@ -335,7 +343,7 @@ func (p *SlurmProvider) GetPods(ctx context.Context) ([]*v1.Pod, error) {
 func (p *SlurmProvider) Capacity(ctx context.Context) v1.ResourceList {
 	return v1.ResourceList{
 		"cpu":    resource.MustParse("2"),
-		"memory": resource.MustParse("16Gi"),
+		"memory": resource.MustParse("2Gi"),
 		"pods":   resource.MustParse("128"),
 	}
 }
@@ -454,6 +462,8 @@ func (p *SlurmProvider) GetStatsSummary(ctx context.Context) (*stats.Summary, er
 	return res, nil
 }
 
+// startCollectingResultsPod creates a new pod which will transfer data from
+// slurm cluster to mounted volume
 func (p *SlurmProvider) startCollectingResultsPod(pod *v1.Pod, r *v1alpha1.SlurmJobResults) error {
 	collectPod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
