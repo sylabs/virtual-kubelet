@@ -41,12 +41,12 @@ type operation struct {
 	Value string `json:"value"`
 }
 
-// nodePatcher provides convenient API for patching k8s node labels and resources
+// nodePatcher provides convenient API for patching k8s node labels and resources.
 type nodePatcher struct {
 	coreClient *corev1.CoreV1Client
 }
 
-// newNodePatcher creates new nodePatcher
+// newNodePatcher creates new nodePatcher.
 func newNodePatcher(c *corev1.CoreV1Client) (*nodePatcher, error) {
 	return &nodePatcher{coreClient: c}, nil
 }
@@ -103,7 +103,7 @@ func (c *nodePatcher) AddNodeLabels(nodeName string, labels map[string]string) e
 	return nil
 }
 
-// RemoveNodeLabels removes nodes labels from node
+// RemoveNodeLabels removes nodes labels from node.
 func (c *nodePatcher) RemoveNodeLabels(nodeName string, labels map[string]string) error {
 	const k8sLabelT = "/metadata/labels/slurm.sylabs.io~1%s"
 
@@ -155,7 +155,7 @@ func (wd *watchDog) watch() {
 			continue
 		}
 
-		// clean up old labels
+		// clean up old labels.
 		labelsToRemove := make(map[string]string)
 		for _, f := range wd.prevFeatures {
 			labelsToRemove[getFeatureKey(f)] = strconv.FormatInt(f.Quantity, 10)

@@ -66,8 +66,8 @@ type podInfo struct {
 	pod *v1.Pod
 }
 
-// SlurmProvider implements the virtual-kubelet provider interface by forwarding kubelet calls to a slurm cluster
-type SlurmProvider struct {
+// Provider implements the virtual-kubelet provider interface by forwarding kubelet calls to a slurm cluster.
+type Provider struct {
 	startTime time.Time
 
 	nodeName           string
@@ -84,22 +84,22 @@ type SlurmProvider struct {
 	pods map[string]*podInfo
 }
 
-// NewSLURMProvider creates a new SlurmProvider
-// Start watch dog for updating nodes resources
-func NewSLURMProvider(nodeName, operatingSystem, internalIP string, daemonEndpointPort int32) (*SlurmProvider, error) {
+// NewProvider creates a new SlurmProvider.
+// Start watch dog for updating nodes resources.
+func NewProvider(nodeName, operatingSystem, internalIP string, daemonEndpointPort int32) (*Provider, error) {
 	conn, err := grpc.Dial("unix://"+redBoxSock, grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("can't connect to %s %s", redBoxSock, err)
 	}
 	redBoxClient := sAPI.NewWorkloadManagerClient(conn)
 
-	// gettings k8s config
+	// gettings k8s config.
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		return nil, fmt.Errorf("can't fetch cluster config: %v", err)
 	}
 
-	// corev1 client set is required to create collecting results pod
+	// corev1 client set is required to create collecting results pod.
 	coreC, err := corev1.NewForConfig(config)
 	if err != nil {
 		return nil, fmt.Errorf("could not create core client: %v", err)
@@ -110,16 +110,16 @@ func NewSLURMProvider(nodeName, operatingSystem, internalIP string, daemonEndpoi
 		return nil, errors.Wrap(err, "can't create nodePatcher")
 	}
 
-	// start updating nodes labels (cpu per node, mem per node, nodes, features)
+	// start updating nodes labels (cpu per node, mem per node, nodes, features).
 	go newWatchDog(nodePatcher, redBoxClient, partition).watch()
 
-	// SlurmJob ClientSet
+	// SlurmJob ClientSet.
 	slurmC, err := versioned.NewForConfig(config)
 	if err != nil {
 		return nil, fmt.Errorf("can't create slurm client set")
 	}
 
-	provider := &SlurmProvider{
+	provider := &Provider{
 		startTime: time.Now(),
 
 		nodeName:           nodeName,
@@ -135,10 +135,10 @@ func NewSLURMProvider(nodeName, operatingSystem, internalIP string, daemonEndpoi
 	return provider, nil
 }
 
-// CreatePod stores pod
-// if pod owner is SlurmJob it starts job on Slurm cluster
-// other pods will not be launched
-func (p *SlurmProvider) CreatePod(ctx context.Context, pod *v1.Pod) error {
+// CreatePod stores pod.
+// if pod owner is SlurmJob it starts job on Slurm cluster,
+// other pods will not be launched.
+func (p *Provider) CreatePod(ctx context.Context, pod *v1.Pod) error {
 	log.Printf("Create Pod %s", podName(pod.Namespace, pod.Name))
 
 	var jobID int64
@@ -179,8 +179,8 @@ func (p *SlurmProvider) CreatePod(ctx context.Context, pod *v1.Pod) error {
 	return nil
 }
 
-// UpdatePod updates pod
-func (p *SlurmProvider) UpdatePod(ctx context.Context, pod *v1.Pod) error {
+// UpdatePod updates pod.
+func (p *Provider) UpdatePod(ctx context.Context, pod *v1.Pod) error {
 	log.Printf("Update pod %s", podName(pod.Namespace, pod.Name))
 	pi, ok := p.pods[podName(pod.Namespace, pod.Name)]
 	if !ok {
@@ -191,15 +191,15 @@ func (p *SlurmProvider) UpdatePod(ctx context.Context, pod *v1.Pod) error {
 	return nil
 }
 
-// DeletePod deletes pod
-func (p *SlurmProvider) DeletePod(ctx context.Context, pod *v1.Pod) error {
+// DeletePod deletes pod.
+func (p *Provider) DeletePod(ctx context.Context, pod *v1.Pod) error {
 	log.Printf("Delete %s", podName(pod.Namespace, pod.Name))
 	delete(p.pods, podName(pod.Namespace, pod.Name))
 	return nil
 }
 
-// GetPod returns a pod
-func (p *SlurmProvider) GetPod(ctx context.Context, namespace, name string) (*v1.Pod, error) {
+// GetPod returns a pod.
+func (p *Provider) GetPod(ctx context.Context, namespace, name string) (*v1.Pod, error) {
 	log.Printf("Get Pod %s", podName(namespace, name))
 	pj, ok := p.pods[podName(namespace, name)]
 	if !ok {
@@ -210,8 +210,8 @@ func (p *SlurmProvider) GetPod(ctx context.Context, namespace, name string) (*v1
 }
 
 // GetContainerLogs returns logs if requeted pod is SlurmJob
-// otherwise returns empty reader
-func (p *SlurmProvider) GetContainerLogs(ctx context.Context, namespace, pName, containerName string, opts api.ContainerLogOpts) (io.ReadCloser, error) {
+// otherwise returns empty reader.
+func (p *Provider) GetContainerLogs(ctx context.Context, namespace, pName, containerName string, opts api.ContainerLogOpts) (io.ReadCloser, error) {
 	log.Printf("GetContainerLogs n:%s pod:%s containerName:%s", namespace, pName, containerName)
 
 	pi, ok := p.pods[podName(namespace, pName)]
@@ -219,7 +219,7 @@ func (p *SlurmProvider) GetContainerLogs(ctx context.Context, namespace, pName, 
 		return nil, errors.New("there is no requested pod")
 	}
 
-	if pi.jobID == 0 { //skipping not slurm jobs
+	if pi.jobID == 0 { //skipping not slurm jobs.
 		return ioutil.NopCloser(strings.NewReader("")), nil
 	}
 
@@ -255,19 +255,19 @@ func (p *SlurmProvider) GetContainerLogs(ctx context.Context, namespace, pName, 
 	return ioutil.NopCloser(buff), nil
 }
 
-// Get full pod name as defined in the provider context
-func (p *SlurmProvider) GetPodFullName(namespace string, pod string) string {
+// Get full pod name as defined in the provider context.
+func (p *Provider) GetPodFullName(namespace string, pod string) string {
 	log.Printf("GetPodFullName n:%s p:%s", namespace, pod)
 	return ""
 }
 
-// RunInContainer SLURM doesn't support it
-func (p *SlurmProvider) RunInContainer(ctx context.Context, namespace, name, container string, cmd []string, attach api.AttachIO) error {
+// RunInContainer SLURM doesn't support it.
+func (p *Provider) RunInContainer(ctx context.Context, namespace, name, container string, cmd []string, attach api.AttachIO) error {
 	return ErrNotSupported
 }
 
 // GetPodStatus retrieves the status of a given pod by name.
-func (p *SlurmProvider) GetPodStatus(ctx context.Context, namespace, name string) (*v1.PodStatus, error) {
+func (p *Provider) GetPodStatus(ctx context.Context, namespace, name string) (*v1.PodStatus, error) {
 	log.Printf("Get Pod Status namespace:%s name:%s", namespace, name)
 
 	status := &v1.PodStatus{
@@ -315,7 +315,7 @@ func (p *SlurmProvider) GetPodStatus(ctx context.Context, namespace, name string
 	}
 
 	pj, ok := p.pods[podName(namespace, name)]
-	if ok && pj.jobID != 0 { // we need only Slurm jobs
+	if ok && pj.jobID != 0 { // we need only Slurm jobs.
 		infoR, err := p.slurmAPI.JobInfo(ctx, &sAPI.JobInfoRequest{JobId: pj.jobID})
 		if err != nil {
 			return nil, errors.Wrapf(err, "can't get status for %d", pj.jobID)
@@ -342,7 +342,7 @@ func (p *SlurmProvider) GetPodStatus(ctx context.Context, namespace, name string
 }
 
 // GetPods retrieves a list of all pods scheduled to run.
-func (p *SlurmProvider) GetPods(ctx context.Context) ([]*v1.Pod, error) {
+func (p *Provider) GetPods(ctx context.Context) ([]*v1.Pod, error) {
 	log.Println("Get Pods")
 
 	var pods []*v1.Pod
@@ -353,8 +353,8 @@ func (p *SlurmProvider) GetPods(ctx context.Context) ([]*v1.Pod, error) {
 	return pods, nil
 }
 
-// Capacity returns a resource list containing the capacity limits
-func (p *SlurmProvider) Capacity(ctx context.Context) v1.ResourceList {
+// Capacity returns a resource list containing the capacity limits.
+func (p *Provider) Capacity(ctx context.Context) v1.ResourceList {
 	return v1.ResourceList{
 		"cpu":    resource.MustParse("2"),
 		"memory": resource.MustParse("2Gi"),
@@ -362,8 +362,8 @@ func (p *SlurmProvider) Capacity(ctx context.Context) v1.ResourceList {
 	}
 }
 
-// NodeConditions returns a list of conditions (Ready, OutOfDisk, etc), for updates to the node status
-func (p *SlurmProvider) NodeConditions(ctx context.Context) []v1.NodeCondition {
+// NodeConditions returns a list of conditions (Ready, OutOfDisk, etc), for updates to the node status.
+func (p *Provider) NodeConditions(ctx context.Context) []v1.NodeCondition {
 	return []v1.NodeCondition{
 		{
 			Type:               "Ready",
@@ -378,7 +378,7 @@ func (p *SlurmProvider) NodeConditions(ctx context.Context) []v1.NodeCondition {
 
 // NodeAddresses returns a list of addresses for the node status
 // within Kubernetes.
-func (p *SlurmProvider) NodeAddresses(ctx context.Context) []v1.NodeAddress {
+func (p *Provider) NodeAddresses(ctx context.Context) []v1.NodeAddress {
 	return []v1.NodeAddress{
 		{
 			Type:    "InternalIP",
@@ -389,7 +389,7 @@ func (p *SlurmProvider) NodeAddresses(ctx context.Context) []v1.NodeAddress {
 
 // NodeDaemonEndpoints returns NodeDaemonEndpoints for the node status
 // within Kubernetes.
-func (p *SlurmProvider) NodeDaemonEndpoints(ctx context.Context) *v1.NodeDaemonEndpoints {
+func (p *Provider) NodeDaemonEndpoints(ctx context.Context) *v1.NodeDaemonEndpoints {
 	return &v1.NodeDaemonEndpoints{
 		KubeletEndpoint: v1.DaemonEndpoint{
 			Port: p.daemonEndpointPort,
@@ -398,12 +398,12 @@ func (p *SlurmProvider) NodeDaemonEndpoints(ctx context.Context) *v1.NodeDaemonE
 }
 
 // OperatingSystem returns the operating system for this provider.
-func (p *SlurmProvider) OperatingSystem() string {
+func (p *Provider) OperatingSystem() string {
 	return p.operatingSystem
 }
 
 // GetStatsSummary returns dummy stats for all pods known by this provider.
-func (p *SlurmProvider) GetStatsSummary(ctx context.Context) (*stats.Summary, error) {
+func (p *Provider) GetStatsSummary(ctx context.Context) (*stats.Summary, error) {
 	// Grab the current timestamp so we can report it as the time the stats were generated.
 	time := metav1.NewTime(time.Now())
 
@@ -477,8 +477,8 @@ func (p *SlurmProvider) GetStatsSummary(ctx context.Context) (*stats.Summary, er
 }
 
 // startCollectingResultsPod creates a new pod which will transfer data from
-// slurm cluster to mounted volume
-func (p *SlurmProvider) startCollectingResultsPod(pod *v1.Pod, r *v1alpha1.SlurmJobResults) error {
+// slurm cluster to mounted volume.
+func (p *Provider) startCollectingResultsPod(pod *v1.Pod, r *v1alpha1.SlurmJobResults) error {
 	collectPod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      pod.Name + "-collect",
@@ -525,7 +525,7 @@ func (p *SlurmProvider) startCollectingResultsPod(pod *v1.Pod, r *v1alpha1.Slurm
 			RestartPolicy: v1.RestartPolicyNever,
 		},
 	}
-	collectPod.OwnerReferences = pod.OwnerReferences //allows k8s to delete pod after parent SlurmJob kind be deleted
+	collectPod.OwnerReferences = pod.OwnerReferences //allows k8s to delete pod after parent SlurmJob kind be deleted.
 
 	_, err := p.coreC.Pods(pod.Namespace).Create(collectPod)
 	return errors.Wrap(err, "can't create collect results pod")
