@@ -377,7 +377,7 @@ func (p *Provider) NodeConditions(ctx context.Context) []v1.NodeCondition {
 func (p *Provider) NodeAddresses(ctx context.Context) []v1.NodeAddress {
 	return []v1.NodeAddress{
 		{
-			Type:    "InternalIP",
+			Type:    v1.NodeInternalIP,
 			Address: p.internalIP,
 		},
 	}
