@@ -326,7 +326,7 @@ func (p *Provider) GetPodStatus(ctx context.Context, namespace, name string) (*v
 			status.Phase = v1.PodSucceeded
 			if pj.jobSpec.Results != nil {
 				if err := p.startCollectingResultsPod(pj.pod, pj.jobSpec.Results); err != nil {
-					log.Printf("can't collect job results err: %s", err)
+					log.Printf("Can't collect job results: %s", err)
 				}
 			}
 		case sAPI.JobStatus_FAILED, sAPI.JobStatus_CANCELLED:
@@ -362,12 +362,12 @@ func (p *Provider) Capacity(ctx context.Context) v1.ResourceList {
 func (p *Provider) NodeConditions(ctx context.Context) []v1.NodeCondition {
 	return []v1.NodeCondition{
 		{
-			Type:               "Ready",
+			Type:               v1.NodeReady,
 			Status:             v1.ConditionTrue,
 			LastHeartbeatTime:  metav1.Now(),
 			LastTransitionTime: metav1.Now(),
 			Reason:             "KubeletReady",
-			Message:            "kubelet is ready.",
+			Message:            "kubelet is ready",
 		},
 	}
 }
@@ -377,7 +377,7 @@ func (p *Provider) NodeConditions(ctx context.Context) []v1.NodeCondition {
 func (p *Provider) NodeAddresses(ctx context.Context) []v1.NodeAddress {
 	return []v1.NodeAddress{
 		{
-			Type:    "InternalIP",
+			Type:    v1.NodeInternalIP,
 			Address: p.internalIP,
 		},
 	}
@@ -521,7 +521,7 @@ func (p *Provider) startCollectingResultsPod(pod *v1.Pod, r *v1alpha1.SlurmJobRe
 			RestartPolicy: v1.RestartPolicyNever,
 		},
 	}
-	collectPod.OwnerReferences = pod.OwnerReferences //allows k8s to delete pod after parent SlurmJob kind be deleted.
+	collectPod.OwnerReferences = pod.OwnerReferences // allows k8s to delete pod after parent SlurmJob kind be deleted.
 
 	_, err := p.coreC.Pods(pod.Namespace).Create(collectPod)
 	return errors.Wrap(err, "can't create collect results pod")
