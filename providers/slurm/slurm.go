@@ -342,7 +342,7 @@ func (p *Provider) GetPods(ctx context.Context) ([]*v1.Pod, error) {
 	log.Println("Get Pods")
 
 	pods := make([]*v1.Pod, len(p.pods))
-	for _, pj := range p.pods {
+	for i, pj := range p.pods {
 		pods = append(pods, pj.pod)
 	}
 
