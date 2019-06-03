@@ -149,9 +149,9 @@ func (wd *watchDog) watch() {
 	for {
 		time.Sleep(10 * time.Second)
 
-		resResp, err := wd.slurmC.Resources(context.Background(), &api.ResourcesRequest{Partition: partition})
+		resResp, err := wd.slurmC.Resources(context.Background(), &api.ResourcesRequest{Partition: wd.partition})
 		if err != nil {
-			log.Printf("can't get resources err: %s", err)
+			log.Printf("Can't get resources err: %s", err)
 			continue
 		}
 
@@ -162,7 +162,7 @@ func (wd *watchDog) watch() {
 		}
 		if len(labelsToRemove) != 0 {
 			if err := wd.k8s.RemoveNodeLabels(vkPodName, labelsToRemove); err != nil {
-				log.Printf("Can't remove old feature labels")
+				log.Printf("Can't remove old feature labels err: %s", err)
 			}
 		}
 
@@ -178,7 +178,7 @@ func (wd *watchDog) watch() {
 		}
 
 		if err := wd.k8s.AddNodeLabels(vkPodName, labels); err != nil {
-			log.Printf("can't add node labes err: %s", err)
+			log.Printf("Can't add node labes err: %s", err)
 		}
 
 		wd.prevFeatures = resResp.Features
