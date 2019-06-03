@@ -96,13 +96,13 @@ func NewProvider(nodeName, operatingSystem, internalIP string, daemonEndpointPor
 	// gettings k8s config.
 	config, err := rest.InClusterConfig()
 	if err != nil {
-		return nil, fmt.Errorf("can't fetch cluster config: %v", err)
+		return nil, errors.Wrap(err, "can't fetch cluster config")
 	}
 
 	// corev1 client set is required to create collecting results pod.
 	coreC, err := corev1.NewForConfig(config)
 	if err != nil {
-		return nil, fmt.Errorf("could not create core client: %v", err)
+		return nil, errors.Wrap(err, "could not create core client")
 	}
 
 	nodePatcher, err := newNodePatcher(coreC)
@@ -116,7 +116,7 @@ func NewProvider(nodeName, operatingSystem, internalIP string, daemonEndpointPor
 	// SlurmJob ClientSet.
 	slurmC, err := versioned.NewForConfig(config)
 	if err != nil {
-		return nil, fmt.Errorf("can't create slurm client set")
+		return nil, errors.Wrap(err, "can't create slurm client set")
 	}
 
 	provider := &Provider{
