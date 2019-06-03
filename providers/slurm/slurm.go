@@ -93,7 +93,7 @@ func NewProvider(nodeName, operatingSystem, internalIP string, daemonEndpointPor
 	}
 	redBoxClient := sAPI.NewWorkloadManagerClient(conn)
 
-	// gettings k8s config.
+	// getting k8s config.
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		return nil, errors.Wrap(err, "can't fetch cluster config")
