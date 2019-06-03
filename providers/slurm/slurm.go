@@ -136,7 +136,7 @@ func NewProvider(nodeName, operatingSystem, internalIP string, daemonEndpointPor
 }
 
 // CreatePod stores pod.
-// if pod owner is SlurmJob it starts job on Slurm cluster,
+// If a pod owner is a SlurmJob, it will start job on a Slurm cluster,
 // other pods will not be launched.
 func (p *Provider) CreatePod(ctx context.Context, pod *v1.Pod) error {
 	log.Printf("Create Pod %s", podName(pod.Namespace, pod.Name))
