@@ -521,7 +521,7 @@ func (p *Provider) startCollectingResultsPod(pod *v1.Pod, r *v1alpha1.SlurmJobRe
 			RestartPolicy: v1.RestartPolicyNever,
 		},
 	}
-	collectPod.OwnerReferences = pod.OwnerReferences //allows k8s to delete pod after parent SlurmJob kind be deleted.
+	collectPod.OwnerReferences = pod.OwnerReferences // allows k8s to delete pod after parent SlurmJob kind be deleted.
 
 	_, err := p.coreC.Pods(pod.Namespace).Create(collectPod)
 	return errors.Wrap(err, "can't create collect results pod")
