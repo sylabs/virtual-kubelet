@@ -367,7 +367,7 @@ func (p *Provider) NodeConditions(ctx context.Context) []v1.NodeCondition {
 			LastHeartbeatTime:  metav1.Now(),
 			LastTransitionTime: metav1.Now(),
 			Reason:             "KubeletReady",
-			Message:            "kubelet is ready.",
+			Message:            "kubelet is ready",
 		},
 	}
 }
