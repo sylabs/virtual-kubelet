@@ -343,7 +343,7 @@ func (p *Provider) GetPods(ctx context.Context) ([]*v1.Pod, error) {
 
 	pods := make([]*v1.Pod, len(p.pods))
 	for i, pj := range p.pods {
-		pods = append(pods, pj.pod)
+		pods[i] = pj.pod
 	}
 
 	return pods, nil
