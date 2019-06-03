@@ -95,8 +95,8 @@ func setupHTTPServer(ctx context.Context, p providers.Provider, cfg *apiServerCo
 		api.AttachPodRoutes(podRoutes, mux, true)
 
 		s := &http.Server{
-			TLSConfig: tlsCfg,
 			Handler:   mux,
+			TLSConfig: tlsCfg,
 		}
 		go serveHTTP(ctx, s, l, "pods")
 		closers = append(closers, s)
