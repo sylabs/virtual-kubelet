@@ -85,7 +85,7 @@ type Provider struct {
 }
 
 // NewProvider creates a new SlurmProvider.
-// Start watch dog for updating nodes resources.
+// Starts watch dog for updating nodes resources.
 func NewProvider(nodeName, operatingSystem, internalIP string, daemonEndpointPort int32) (*Provider, error) {
 	conn, err := grpc.Dial("unix://"+redBoxSock, grpc.WithInsecure())
 	if err != nil {
