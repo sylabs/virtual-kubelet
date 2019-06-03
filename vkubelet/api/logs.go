@@ -30,6 +30,7 @@ func HandleContainerLogs(h ContainerLogsHandlerFunc) http.HandlerFunc {
 	if h == nil {
 		return NotImplemented
 	}
+
 	return handleError(func(w http.ResponseWriter, req *http.Request) error {
 		vars := mux.Vars(req)
 		if len(vars) != 3 {
