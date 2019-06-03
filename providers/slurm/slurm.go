@@ -209,7 +209,7 @@ func (p *Provider) GetPod(ctx context.Context, namespace, name string) (*v1.Pod,
 	return pj.pod, nil
 }
 
-// GetContainerLogs returns logs if requeted pod is SlurmJob
+// GetContainerLogs returns logs if requested pod is SlurmJob,
 // otherwise returns empty reader.
 func (p *Provider) GetContainerLogs(ctx context.Context, namespace, pName, containerName string, opts api.ContainerLogOpts) (io.ReadCloser, error) {
 	log.Printf("GetContainerLogs n:%s pod:%s containerName:%s", namespace, pName, containerName)
