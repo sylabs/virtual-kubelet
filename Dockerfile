@@ -4,7 +4,7 @@ ENV GOPATH /go
 COPY . /go/src/github.com/virtual-kubelet/virtual-kubelet
 WORKDIR /go/src/github.com/virtual-kubelet/virtual-kubelet
 ARG BUILD_TAGS=""
-RUN CGO_ENABLED=0 go build -o main cmd/virtual-kubelet/main.go
+RUN CGO_ENABLED=0 go build -tags slurm_provider -o main cmd/virtual-kubelet/main.go
 
 FROM scratch
 COPY --from=builder /go/src/github.com/virtual-kubelet/virtual-kubelet/main /app/

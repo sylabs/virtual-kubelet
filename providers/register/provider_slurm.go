@@ -1,3 +1,5 @@
+// +build slurm_provider
+
 package register
 
 import (
