@@ -158,7 +158,7 @@ func (wd *watchDog) watch() {
 		// clean up old labels.
 		labelsToRemove := make(map[string]string)
 		for _, f := range wd.prevFeatures {
-			labelsToRemove[getFeatureKey(f)] = strconv.FormatInt(f.Quantity, 10)
+			labelsToRemove[featureKey(f)] = strconv.FormatInt(f.Quantity, 10)
 		}
 		if len(labelsToRemove) != 0 {
 			if err := wd.k8s.RemoveNodeLabels(vkPodName, labelsToRemove); err != nil {
@@ -174,7 +174,7 @@ func (wd *watchDog) watch() {
 		}
 
 		for _, f := range resResp.Features {
-			labels[getFeatureKey(f)] = strconv.FormatInt(f.Quantity, 10)
+			labels[featureKey(f)] = strconv.FormatInt(f.Quantity, 10)
 		}
 
 		if err := wd.k8s.AddNodeLabels(vkPodName, labels); err != nil {
@@ -185,7 +185,7 @@ func (wd *watchDog) watch() {
 	}
 }
 
-func getFeatureKey(f *api.Feature) string {
+func featureKey(f *api.Feature) string {
 	if f.Version == "" {
 		return f.Name
 	}
