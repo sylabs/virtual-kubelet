@@ -341,7 +341,7 @@ func (p *Provider) GetPodStatus(ctx context.Context, namespace, name string) (*v
 func (p *Provider) GetPods(ctx context.Context) ([]*v1.Pod, error) {
 	log.Println("Get Pods")
 
-	var pods []*v1.Pod
+	pods := make([]*v1.Pod, len(p.pods))
 	for _, pj := range p.pods {
 		pods = append(pods, pj.pod)
 	}
