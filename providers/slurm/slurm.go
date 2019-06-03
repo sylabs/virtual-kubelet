@@ -362,7 +362,7 @@ func (p *Provider) Capacity(ctx context.Context) v1.ResourceList {
 func (p *Provider) NodeConditions(ctx context.Context) []v1.NodeCondition {
 	return []v1.NodeCondition{
 		{
-			Type:               "Ready",
+			Type:               v1.NodeReady,
 			Status:             v1.ConditionTrue,
 			LastHeartbeatTime:  metav1.Now(),
 			LastTransitionTime: metav1.Now(),
