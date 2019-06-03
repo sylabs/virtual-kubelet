@@ -89,7 +89,7 @@ type Provider struct {
 func NewProvider(nodeName, operatingSystem, internalIP string, daemonEndpointPort int32) (*Provider, error) {
 	conn, err := grpc.Dial("unix://"+redBoxSock, grpc.WithInsecure())
 	if err != nil {
-		log.Fatalf("can't connect to %s %s", redBoxSock, err)
+		return nil, errors.Wrapf(err, "can't connect to %s", redBoxSock)
 	}
 	redBoxClient := sAPI.NewWorkloadManagerClient(conn)
 
