@@ -219,7 +219,7 @@ func (p *Provider) GetContainerLogs(ctx context.Context, namespace, pName, conta
 		return nil, errors.New("there is no requested pod")
 	}
 
-	if pi.jobID == 0 { //skipping not slurm jobs.
+	if pi.jobID == 0 { // skipping non slurm jobs
 		return ioutil.NopCloser(strings.NewReader("")), nil
 	}
 
