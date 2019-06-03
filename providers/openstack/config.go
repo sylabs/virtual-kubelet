@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
-	"github.com/sylabs/virtual-kubelet/providers"
+	"github.com/virtual-kubelet/virtual-kubelet/providers"
 )
 
 type providerConfig struct {

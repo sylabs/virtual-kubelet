@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/sylabs/virtual-kubelet/manager"
-	"github.com/sylabs/virtual-kubelet/trace"
+	"github.com/virtual-kubelet/virtual-kubelet/manager"
+	"github.com/virtual-kubelet/virtual-kubelet/trace"
 	corev1 "k8s.io/api/core/v1"
 	corev1informers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"

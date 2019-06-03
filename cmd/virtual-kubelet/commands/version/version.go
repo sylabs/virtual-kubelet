@@ -18,7 +18,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"github.com/sylabs/virtual-kubelet/version"
+	"github.com/virtual-kubelet/virtual-kubelet/version"
 )
 
 // NewCommand creates a new version subcommand command

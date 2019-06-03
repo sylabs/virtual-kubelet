@@ -5,8 +5,8 @@ import (
 
 	"github.com/cpuguy83/strongerrors"
 	"github.com/pkg/errors"
-	"github.com/sylabs/virtual-kubelet/manager"
-	"github.com/sylabs/virtual-kubelet/providers"
+	"github.com/virtual-kubelet/virtual-kubelet/manager"
+	"github.com/virtual-kubelet/virtual-kubelet/providers"
 )
 
 var providerInits = make(map[string]initFunc)

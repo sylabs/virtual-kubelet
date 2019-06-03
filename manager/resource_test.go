@@ -8,8 +8,8 @@ import (
 	corev1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 
-	"github.com/sylabs/virtual-kubelet/manager"
-	testutil "github.com/sylabs/virtual-kubelet/test/util"
+	"github.com/virtual-kubelet/virtual-kubelet/manager"
+	testutil "github.com/virtual-kubelet/virtual-kubelet/test/util"
 )
 
 // TestGetPods verifies that the resource manager acts as a passthrough to a pod lister.

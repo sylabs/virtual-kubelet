@@ -5,8 +5,8 @@ import (
 
 	"github.com/cpuguy83/strongerrors/status/ocstatus"
 	pkgerrors "github.com/pkg/errors"
-	"github.com/sylabs/virtual-kubelet/log"
-	"github.com/sylabs/virtual-kubelet/trace"
+	"github.com/virtual-kubelet/virtual-kubelet/log"
+	"github.com/virtual-kubelet/virtual-kubelet/trace"
 	"k8s.io/client-go/util/workqueue"
 )
 

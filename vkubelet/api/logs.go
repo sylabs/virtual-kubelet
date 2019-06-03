@@ -10,7 +10,7 @@ import (
 	"github.com/cpuguy83/strongerrors"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
-	"github.com/sylabs/virtual-kubelet/log"
+	"github.com/virtual-kubelet/virtual-kubelet/log"
 )
 
 // ContainerLogsHandlerFunc is used in place of backend implementations for getting container logs

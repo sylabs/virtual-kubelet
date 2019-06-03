@@ -22,7 +22,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
-	"github.com/sylabs/virtual-kubelet/trace/opencensus"
+	"github.com/virtual-kubelet/virtual-kubelet/trace/opencensus"
 	"k8s.io/klog"
 )
 

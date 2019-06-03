@@ -13,7 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/cpuguy83/strongerrors"
-	"github.com/sylabs/virtual-kubelet/vkubelet/api"
+	"github.com/virtual-kubelet/virtual-kubelet/vkubelet/api"
 	k8sTypes "k8s.io/apimachinery/pkg/types"
 )
 

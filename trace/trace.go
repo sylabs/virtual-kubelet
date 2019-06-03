@@ -8,7 +8,7 @@ package trace
 import (
 	"context"
 
-	"github.com/sylabs/virtual-kubelet/log"
+	"github.com/virtual-kubelet/virtual-kubelet/log"
 	"go.opencensus.io/trace"
 )
 

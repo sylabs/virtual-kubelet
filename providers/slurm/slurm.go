@@ -33,7 +33,7 @@ import (
 
 	"github.com/sylabs/slurm-operator/pkg/operator/client/clientset/versioned"
 	sAPI "github.com/sylabs/slurm-operator/pkg/workload/api"
-	"github.com/sylabs/virtual-kubelet/vkubelet/api"
+	"github.com/virtual-kubelet/virtual-kubelet/vkubelet/api"
 
 	"google.golang.org/grpc"
 

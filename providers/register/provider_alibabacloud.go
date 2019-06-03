@@ -3,8 +3,8 @@
 package register
 
 import (
-	"github.com/sylabs/virtual-kubelet/providers"
-	"github.com/sylabs/virtual-kubelet/providers/alibabacloud"
+	"github.com/virtual-kubelet/virtual-kubelet/providers"
+	"github.com/virtual-kubelet/virtual-kubelet/providers/alibabacloud"
 )
 
 func init() {
