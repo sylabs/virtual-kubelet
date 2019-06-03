@@ -56,6 +56,7 @@ var (
 	redBoxSock = os.Getenv("RED_BOX_SOCK")
 
 	ErrNotSupported = errors.New("not supported")
+	ErrPodNotFound  = errors.New("there is no requested pod")
 )
 
 type podInfo struct {
@@ -144,6 +145,7 @@ func (p *Provider) CreatePod(ctx context.Context, pod *v1.Pod) error {
 	var jobID int64
 	var jobSpec *v1alpha1.SlurmJobSpec
 
+	pod.GetOwnerReferences()
 	if len(pod.OwnerReferences) == 1 && pod.OwnerReferences[0].Kind == slurmJobKind {
 		sj, err := p.slurmJobC.SlurmV1alpha1().
 			SlurmJobs(pod.Namespace).
@@ -184,7 +186,7 @@ func (p *Provider) UpdatePod(ctx context.Context, pod *v1.Pod) error {
 	log.Printf("Update pod %s", podName(pod.Namespace, pod.Name))
 	pi, ok := p.pods[podName(pod.Namespace, pod.Name)]
 	if !ok {
-		return errors.New("there is no requested pod")
+		return ErrPodNotFound
 	}
 	pi.pod = pod
 
@@ -203,7 +205,7 @@ func (p *Provider) GetPod(ctx context.Context, namespace, name string) (*v1.Pod,
 	log.Printf("Get Pod %s", podName(namespace, name))
 	pj, ok := p.pods[podName(namespace, name)]
 	if !ok {
-		return nil, errors.New("there is no requested pod")
+		return nil, ErrPodNotFound
 	}
 
 	return pj.pod, nil
@@ -216,7 +218,7 @@ func (p *Provider) GetContainerLogs(ctx context.Context, namespace, pName, conta
 
 	pi, ok := p.pods[podName(namespace, pName)]
 	if !ok {
-		return nil, errors.New("there is no requested pod")
+		return nil, ErrPodNotFound
 	}
 
 	if pi.jobID == 0 { // skipping non slurm jobs
@@ -253,12 +255,6 @@ func (p *Provider) GetContainerLogs(ctx context.Context, namespace, pName, conta
 	}
 
 	return ioutil.NopCloser(buff), nil
-}
-
-// Get full pod name as defined in the provider context.
-func (p *Provider) GetPodFullName(namespace string, pod string) string {
-	log.Printf("GetPodFullName n:%s p:%s", namespace, pod)
-	return ""
 }
 
 // RunInContainer SLURM doesn't support it.
