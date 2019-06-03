@@ -326,7 +326,7 @@ func (p *Provider) GetPodStatus(ctx context.Context, namespace, name string) (*v
 			status.Phase = v1.PodSucceeded
 			if pj.jobSpec.Results != nil {
 				if err := p.startCollectingResultsPod(pj.pod, pj.jobSpec.Results); err != nil {
-					log.Printf("can't collect job results err: %s", err)
+					log.Printf("Can't collect job results: %s", err)
 				}
 			}
 		case sAPI.JobStatus_FAILED, sAPI.JobStatus_CANCELLED:
