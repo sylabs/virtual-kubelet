@@ -401,7 +401,7 @@ func (p *Provider) OperatingSystem() string {
 // GetStatsSummary returns dummy stats for all pods known by this provider.
 func (p *Provider) GetStatsSummary(ctx context.Context) (*stats.Summary, error) {
 	// Grab the current timestamp so we can report it as the time the stats were generated.
-	time := metav1.NewTime(time.Now())
+	now := metav1.NewTime(time.Now())
 
 	// Create the Summary object that will later be populated with node and pod stats.
 	res := &stats.Summary{}
@@ -446,11 +446,11 @@ func (p *Provider) GetStatsSummary(ctx context.Context) (*stats.Summary, error) 
 				Name:      container.Name,
 				StartTime: pi.pod.CreationTimestamp,
 				CPU: &stats.CPUStats{
-					Time:           time,
+					Time:           now,
 					UsageNanoCores: &dummyUsageNanoCores,
 				},
 				Memory: &stats.MemoryStats{
-					Time:       time,
+					Time:       now,
 					UsageBytes: &dummyUsageBytes,
 				},
 			})
@@ -458,11 +458,11 @@ func (p *Provider) GetStatsSummary(ctx context.Context) (*stats.Summary, error) 
 
 		// Populate the CPU and RAM stats for the pod and append the PodsStats object to the Summary object to be returned.
 		pss.CPU = &stats.CPUStats{
-			Time:           time,
+			Time:           now,
 			UsageNanoCores: &totalUsageNanoCores,
 		}
 		pss.Memory = &stats.MemoryStats{
-			Time:       time,
+			Time:       now,
 			UsageBytes: &totalUsageBytes,
 		}
 		res.Pods = append(res.Pods, pss)
