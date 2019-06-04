@@ -167,13 +167,13 @@ func (wd *watchDog) watch() {
 		}
 
 		labels := map[string]string{
+			"workload-manage": "slurm", // default label for each node which works with slurm
+
 			"nodes":        strconv.FormatInt(resResp.Nodes, 10),
 			"wall-time":    strconv.FormatInt(resResp.WallTime, 10),
 			"cpu-per-node": strconv.FormatInt(resResp.CpuPerNode, 10),
 			"mem-per-node": strconv.FormatInt(resResp.MemPerNode, 10),
 		}
-
-		labels["workload-manager"] = "slurm" // default label for each node which works with slurm
 
 		for _, f := range resResp.Features {
 			labels[featureKey(f)] = strconv.FormatInt(f.Quantity, 10)
