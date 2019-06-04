@@ -59,12 +59,12 @@ rules:
       - create
       - patch
   - apiGroups:
-      - ""
-      - slurm.sylabs.io
-      resources:
-        - slurmjobs
-      verbs:
-        - get
+    - ""
+    - slurm.sylabs.io
+    resources:
+      - slurmjobs
+    verbs:
+      - get
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -84,6 +84,7 @@ kind: Pod
 metadata:
   name: vkubelet-slurm-0
 spec:
+  serviceAccountName: virtual-kubelet
   containers:
     - name: vkubelet-slurm-0
       image: cali4888/vk:0.0.1
@@ -96,8 +97,8 @@ spec:
         - --startup-timeout
         - 10s
       volumeMounts:
-        - name: red-box-sock
-          mountPath: /red-box.sock
+        - name: syslurm-mount
+          mountPath: /syslurm
         - name: kubelet-crt
           mountPath: /kubelet.crt
         - name: kubelet-key
@@ -118,7 +119,7 @@ spec:
         - name: PARTITION
           value: "debug"
         - name: RED_BOX_SOCK
-          value: "/red-box.sock"
+          value: "/syslurm/red-box.sock"
         - name: APISERVER_CERT_LOCATION
           value: "/kubelet.crt"
         - name: APISERVER_KEY_LOCATION
@@ -131,14 +132,15 @@ spec:
           path: /stats/summary
           port: metrics
   volumes:
-    - name: red-box-sock
+    - name: syslurm-mount
       hostPath:
-        path: /var/run/syslurm/red-box.sock
+        path: /var/run/syslurm
+        type: Directory
     - name: kubelet-crt
       hostPath:
         path: /var/lib/kubelet/pki/kubelet.crt
+        type: File
     - name: kubelet-key
       hostPath:
         path: /var/lib/kubelet/pki/kubelet.key
-
-  serviceAccountName: virtual-kubelet
+        type: File
