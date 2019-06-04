@@ -61,10 +61,10 @@ rules:
   - apiGroups:
       - ""
       - slurm.sylabs.io
-      resources:
-        - slurmjobs
-      verbs:
-        - get
+    resources:
+      - slurmjobs
+    verbs:
+      - get
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -84,6 +84,7 @@ kind: Pod
 metadata:
   name: vkubelet-slurm-0
 spec:
+  serviceAccountName: virtual-kubelet
   containers:
     - name: vkubelet-slurm-0
       image: cali4888/vk:0.0.1
@@ -141,4 +142,3 @@ spec:
       hostPath:
         path: /var/lib/kubelet/pki/kubelet.key
 
-  serviceAccountName: virtual-kubelet
