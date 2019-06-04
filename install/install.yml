@@ -59,8 +59,8 @@ rules:
       - create
       - patch
   - apiGroups:
-    - ""
-    - slurm.sylabs.io
+      - ""
+      - slurm.sylabs.io
     resources:
       - slurmjobs
     verbs:
