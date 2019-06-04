@@ -24,8 +24,8 @@ import (
 	"time"
 
 	"github.com/sylabs/slurm-operator/pkg/workload/api"
-
 	"github.com/pkg/errors"
+	"github.com/sylabs/slurm-operator/pkg/workload/api"
 	"k8s.io/apimachinery/pkg/types"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
@@ -167,7 +167,7 @@ func (wd *watchDog) watch() {
 		}
 
 		labels := map[string]string{
-			"workload-manage": "slurm", // default label for each node which works with slurm
+			"workload-manager": "slurm", // default label for each node which works with slurm
 
 			"nodes":        strconv.FormatInt(resResp.Nodes, 10),
 			"wall-time":    strconv.FormatInt(resResp.WallTime, 10),
