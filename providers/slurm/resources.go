@@ -173,6 +173,8 @@ func (wd *watchDog) watch() {
 			"mem-per-node": strconv.FormatInt(resResp.MemPerNode, 10),
 		}
 
+		labels["workload-manager"] = "slurm" // default label for each node which works with slurm
+
 		for _, f := range resResp.Features {
 			labels[featureKey(f)] = strconv.FormatInt(f.Quantity, 10)
 		}
