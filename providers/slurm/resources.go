@@ -166,8 +166,7 @@ func (wd *watchDog) watch() {
 		}
 
 		labels := map[string]string{
-			"workload-manager": "slurm", // default label for each node which works with slurm
-			"partition":        wd.partition,
+			"partition": wd.partition,
 
 			"nodes":        strconv.FormatInt(resResp.Nodes, 10),
 			"wall-time":    strconv.FormatInt(resResp.WallTime, 10),
