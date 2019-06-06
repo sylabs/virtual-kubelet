@@ -23,7 +23,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/sylabs/slurm-operator/pkg/workload/api"
 	"github.com/pkg/errors"
 	"github.com/sylabs/slurm-operator/pkg/workload/api"
 	"k8s.io/apimachinery/pkg/types"
