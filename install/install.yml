@@ -87,7 +87,7 @@ spec:
   serviceAccountName: virtual-kubelet
   containers:
     - name: vkubelet-slurm-0
-      image: cali4888/vk:0.0.1
+      image: sylabsio/slurm:vk
       imagePullPolicy: Always
       args:
         - --nodename
