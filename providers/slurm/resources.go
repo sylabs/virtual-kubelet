@@ -23,7 +23,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/sylabs/slurm-operator/pkg/workload/api"
 	"github.com/pkg/errors"
 	"github.com/sylabs/slurm-operator/pkg/workload/api"
 	"k8s.io/apimachinery/pkg/types"
@@ -167,7 +166,7 @@ func (wd *watchDog) watch() {
 		}
 
 		labels := map[string]string{
-			"workload-manager": "slurm", // default label for each node which works with slurm
+			"partition": wd.partition,
 
 			"nodes":        strconv.FormatInt(resResp.Nodes, 10),
 			"wall-time":    strconv.FormatInt(resResp.WallTime, 10),

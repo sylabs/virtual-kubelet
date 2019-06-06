@@ -22,21 +22,16 @@ import (
 	"io/ioutil"
 	"log"
 	"math/rand"
-	"net/url"
 	"os"
 	"strings"
 	"time"
 
-	"github.com/sylabs/slurm-operator/pkg/operator/apis/slurm/v1alpha1"
-
 	"github.com/pkg/errors"
-
+	"github.com/sylabs/slurm-operator/pkg/operator/apis/slurm/v1alpha1"
 	"github.com/sylabs/slurm-operator/pkg/operator/client/clientset/versioned"
 	sAPI "github.com/sylabs/slurm-operator/pkg/workload/api"
 	"github.com/virtual-kubelet/virtual-kubelet/vkubelet/api"
-
 	"google.golang.org/grpc"
-
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -70,17 +65,17 @@ type podInfo struct {
 // Provider implements the virtual-kubelet provider interface by forwarding kubelet calls to a slurm cluster.
 type Provider struct {
 	startTime time.Time
+	uid       int64
+	gid       int64
 
 	nodeName           string
 	operatingSystem    string
-	endpoint           *url.URL
 	daemonEndpointPort int32
 	internalIP         string
 
-	slurmAPI  sAPI.WorkloadManagerClient
-	slurmJobC *versioned.Clientset
-
-	coreC *corev1.CoreV1Client
+	slurmAPI   sAPI.WorkloadManagerClient
+	coreClient *corev1.CoreV1Client
+	sjClient   *versioned.Clientset
 
 	pods map[string]*podInfo
 }
@@ -90,47 +85,51 @@ type Provider struct {
 func NewProvider(nodeName, operatingSystem, internalIP string, daemonEndpointPort int32) (*Provider, error) {
 	conn, err := grpc.Dial("unix://"+redBoxSock, grpc.WithInsecure())
 	if err != nil {
-		return nil, errors.Wrapf(err, "can't connect to %s", redBoxSock)
+		return nil, errors.Wrapf(err, "could not connect to %s", redBoxSock)
 	}
 	redBoxClient := sAPI.NewWorkloadManagerClient(conn)
 
 	// getting k8s config.
 	config, err := rest.InClusterConfig()
 	if err != nil {
-		return nil, errors.Wrap(err, "can't fetch cluster config")
+		return nil, errors.Wrap(err, "could not fetch cluster config")
 	}
 
 	// corev1 client set is required to create collecting results pod.
-	coreC, err := corev1.NewForConfig(config)
+	coreClient, err := corev1.NewForConfig(config)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create core client")
 	}
 
-	nodePatcher, err := newNodePatcher(coreC)
+	nodePatcher, err := newNodePatcher(coreClient)
 	if err != nil {
-		return nil, errors.Wrap(err, "can't create nodePatcher")
+		return nil, errors.Wrap(err, "could not create nodePatcher")
 	}
 
 	// start updating nodes labels (cpu per node, mem per node, nodes, features).
 	go newWatchDog(nodePatcher, redBoxClient, partition).watch()
 
 	// SlurmJob ClientSet.
-	slurmC, err := versioned.NewForConfig(config)
+	sjClient, err := versioned.NewForConfig(config)
 	if err != nil {
-		return nil, errors.Wrap(err, "can't create slurm client set")
+		return nil, errors.Wrap(err, "could not create slurm client set")
 	}
 
 	provider := &Provider{
 		startTime: time.Now(),
+		uid:       int64(os.Getuid()),
+		gid:       int64(os.Getgid()),
 
 		nodeName:           nodeName,
 		operatingSystem:    operatingSystem,
-		internalIP:         internalIP,
 		daemonEndpointPort: daemonEndpointPort,
-		slurmAPI:           redBoxClient,
-		slurmJobC:          slurmC,
-		coreC:              coreC,
-		pods:               make(map[string]*podInfo),
+		internalIP:         internalIP,
+
+		slurmAPI:   redBoxClient,
+		coreClient: coreClient,
+		sjClient:   sjClient,
+
+		pods: make(map[string]*podInfo),
 	}
 
 	return provider, nil
@@ -147,7 +146,7 @@ func (p *Provider) CreatePod(ctx context.Context, pod *v1.Pod) error {
 
 	pod.GetOwnerReferences()
 	if len(pod.OwnerReferences) == 1 && pod.OwnerReferences[0].Kind == slurmJobKind {
-		sj, err := p.slurmJobC.SlurmV1alpha1().
+		sj, err := p.sjClient.SlurmV1alpha1().
 			SlurmJobs(pod.Namespace).
 			Get(pod.OwnerReferences[0].Name, metav1.GetOptions{})
 		if err != nil {
@@ -474,11 +473,11 @@ func (p *Provider) GetStatsSummary(ctx context.Context) (*stats.Summary, error) 
 
 // startCollectingResultsPod creates a new pod which will transfer data from
 // slurm cluster to mounted volume.
-func (p *Provider) startCollectingResultsPod(pod *v1.Pod, r *v1alpha1.SlurmJobResults) error {
+func (p *Provider) startCollectingResultsPod(jobPod *v1.Pod, r *v1alpha1.SlurmJobResults) error {
 	collectPod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      pod.Name + "-collect",
-			Namespace: pod.Namespace,
+			Name:      jobPod.Name + "-collect",
+			Namespace: jobPod.Namespace,
 		},
 		Spec: v1.PodSpec{
 			Containers: []v1.Container{
@@ -518,13 +517,17 @@ func (p *Provider) startCollectingResultsPod(pod *v1.Pod, r *v1alpha1.SlurmJobRe
 			NodeSelector: map[string]string{
 				"kubernetes.io/hostname": vkHostNode,
 			},
+			SecurityContext: &v1.PodSecurityContext{
+				RunAsUser:  &p.uid,
+				RunAsGroup: &p.gid,
+			},
 			RestartPolicy: v1.RestartPolicyNever,
 		},
 	}
-	collectPod.OwnerReferences = pod.OwnerReferences // allows k8s to delete pod after parent SlurmJob kind be deleted.
+	collectPod.OwnerReferences = jobPod.OwnerReferences // allows k8s to delete pod after parent SlurmJob kind be deleted.
 
-	_, err := p.coreC.Pods(pod.Namespace).Create(collectPod)
-	return errors.Wrap(err, "can't create collect results pod")
+	_, err := p.coreClient.Pods(jobPod.Namespace).Create(collectPod)
+	return errors.Wrap(err, "could not create collect results pod")
 }
 
 func podName(namespace, name string) string {

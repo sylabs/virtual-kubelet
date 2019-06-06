@@ -87,7 +87,7 @@ spec:
   serviceAccountName: virtual-kubelet
   containers:
     - name: vkubelet-slurm-0
-      image: cali4888/vk:0.0.1
+      image: sylabsio/slurm:vk
       imagePullPolicy: Always
       args:
         - --nodename
@@ -131,6 +131,9 @@ spec:
         httpGet:
           path: /stats/summary
           port: metrics
+  securityContext:
+    runAsUser: 1000
+    runAsGroup: 1000
   volumes:
     - name: syslurm-mount
       hostPath:
