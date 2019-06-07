@@ -135,12 +135,12 @@ workflows:
   validate_and_test:
     jobs:
       - get_source
-      - validate
+      - validate:
           requires:
             - get_source
-      - test
+      - test:
           requires:
             - get_source
-      - e2e
+      - e2e:
           requires:
             - get_source
