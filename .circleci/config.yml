@@ -1,11 +1,25 @@
 version: 2
+
 jobs:
-  validate:
+
+  get_source:
     docker:
       - image: circleci/golang:1.12
     working_directory: /go/src/github.com/virtual-kubelet/virtual-kubelet
     steps:
       - checkout
+      - persist_to_workspace:
+          root: /go
+          paths:
+            - src/github.com/virtual-kubelet/virtual-kubelet
+
+  validate:
+    docker:
+      - image: circleci/golang:1.12
+    working_directory: /go/src/github.com/virtual-kubelet/virtual-kubelet
+    steps:
+      - attach_workspace:
+          at: /go
       - run:
           name: go vet
           command: V=1 CI=1 make vet
@@ -24,7 +38,8 @@ jobs:
       - image: circleci/golang:1.12
     working_directory: /go/src/github.com/virtual-kubelet/virtual-kubelet
     steps:
-      - checkout
+      - attach_workspace:
+          at: /go
       - run:
           name: Build
           command: V=1 make build
@@ -59,7 +74,8 @@ jobs:
       MINIKUBE_WANTREPORTERRORPROMPT: false
       SKAFFOLD_VERSION: v0.18.0
     steps:
-      - checkout
+      - attach_workspace:
+          at: ~/go
       - run:
           name: Install kubectl
           command: |
@@ -118,6 +134,13 @@ workflows:
   version: 2
   validate_and_test:
     jobs:
+      - get_source
       - validate
+        requires:
+          - get_source
       - test
+        requires:
+          - get_source
       - e2e
+        requires:
+          - get_source
