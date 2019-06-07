@@ -36,6 +36,7 @@ rules:
     verbs:
       - create
       - get
+      - delete
       - patch
   - apiGroups:
       - ""
@@ -89,13 +90,7 @@ spec:
     - name: vkubelet-slurm-0
       image: sylabsio/slurm:vk
       imagePullPolicy: Always
-      args:
-        - --nodename
-        - vkubelet-slurm-0
-        - --provider
-        - slurm
-        - --startup-timeout
-        - 10s
+      args: ["--nodename", "vkubelet-slurm-0", "--provider", "slurm", "--startup-timeout", "10s", "--klog.v", "10"]
       volumeMounts:
         - name: syslurm-mount
           mountPath: /syslurm
