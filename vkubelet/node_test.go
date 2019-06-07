@@ -193,7 +193,7 @@ func TestNodeCustomUpdateStatusErrorHandler(t *testing.T) {
 
 	select {
 	case err := <-chErr:
-		assert.Equal(t, err, nil)
+		assert.ErrorContains(t, err, "not found")
 	case <-timer.C:
 		t.Fatal("timeout waiting for node shutdown")
 	}
