@@ -136,11 +136,11 @@ workflows:
     jobs:
       - get_source
       - validate
-        requires:
-          - get_source
+          requires:
+            - get_source
       - test
-        requires:
-          - get_source
+          requires:
+            - get_source
       - e2e
-        requires:
-          - get_source
+          requires:
+            - get_source
