@@ -787,7 +787,7 @@
 
 [[projects]]
   branch = "staging"
-  digest = "0:"
+  digest = "1:a6b57fcde5e7554d0bb001e257724df1d0d687f1b721943f12a169e9f0915adb"
   name = "github.com/sylabs/slurm-operator"
   packages = [
     "pkg/operator/apis/slurm/v1alpha1",
