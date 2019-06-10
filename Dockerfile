@@ -6,7 +6,7 @@ WORKDIR /go/src/github.com/virtual-kubelet/virtual-kubelet
 ARG BUILD_TAGS=""
 RUN CGO_ENABLED=0 go build -tags slurm_provider -o main cmd/virtual-kubelet/main.go
 
-FROM scratch
+FROM busybox:1.28.4
 COPY --from=builder /go/src/github.com/virtual-kubelet/virtual-kubelet/main /app/
 COPY --from=builder /etc/ssl/certs/ /etc/ssl/certs
 WORKDIR /app
