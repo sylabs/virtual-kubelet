@@ -178,3 +178,11 @@ authors:
 	$Q mv NEWAUTHORS AUTHORS
 	$Q rm -f NEWAUTHORS
 	$Q rm -f GITAUTHORS
+
+.PHONY: push
+push: TAG=latest
+push:
+	$Q sudo docker build -t sylabsio/slurm:vk .
+	$Q mkdir sif && sudo singularity build sif/vk.sif docker-daemon://sylabsio/slurm:vk
+	$Q singularity sign sif/vk.sif
+	$Q singularity push sif/vk.sif library://library/slurm/vk:${TAG}
