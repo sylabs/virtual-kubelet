@@ -90,6 +90,7 @@ spec:
     - name: vkubelet-slurm-0
       image: cloud.sylabs.io/library/default/slurm:vk
       imagePullPolicy: Always
+      workingDir: /app
       args: ["--nodename", "vkubelet-slurm-0", "--provider", "slurm", "--startup-timeout", "10s", "--klog.v", "10"]
       volumeMounts:
         - name: syslurm-mount
