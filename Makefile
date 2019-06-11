@@ -181,6 +181,7 @@ authors:
 
 .PHONY: push
 push: TAG=latest
-	$Q sudo singularity build sif/vk.sif sif/vk
+push:
+	$Q sudo singularity build sif/vk.sif docker-daemon://sylabsio/slurm:vk
 	$Q singularity sign sif/vk.sif
 	$Q singularity push sif/vk.sif library://library/slurm/vk:${TAG}
