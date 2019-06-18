@@ -50,9 +50,8 @@ var (
 	partition  = os.Getenv("PARTITION")
 	redBoxSock = os.Getenv("RED_BOX_SOCK")
 
-	errJobIsNotPending = errors.New("job is not pending")
-	ErrNotSupported    = errors.New("not supported")
-	ErrPodNotFound     = errors.New("there is no requested pod")
+	ErrNotSupported = errors.New("not supported")
+	ErrPodNotFound  = errors.New("there is no requested pod")
 )
 
 type podInfo struct {
@@ -198,8 +197,9 @@ func (p *Provider) DeletePod(ctx context.Context, pod *v1.Pod) error {
 	log.Printf("Delete %s", podName(pod.Namespace, pod.Name))
 	pi := p.pods[podName(pod.Namespace, pod.Name)]
 	if pi.jobID != 0 {
-		if err := p.cancelPendingJob(pi.jobID); err != nil {
-			log.Printf("Can't cancle job %s", err)
+		_, err := p.slurmAPI.CancelJob(context.Background(), &sAPI.CancelJobRequest{JobId: pi.jobID})
+		if err != nil {
+			return errors.Wrapf(err, "can't cancel job %d", pi.jobID)
 		}
 	}
 	delete(p.pods, podName(pod.Namespace, pod.Name))
@@ -476,21 +476,6 @@ func (p *Provider) GetStatsSummary(ctx context.Context) (*stats.Summary, error) 
 
 	// Return the dummy stats.
 	return res, nil
-}
-
-// cancelPendingJob get's job info, check status and cancel job if status is pending
-func (p *Provider) cancelPendingJob(jid int64) error {
-	resp, err := p.slurmAPI.JobInfo(context.Background(), &sAPI.JobInfoRequest{JobId: jid})
-	if err != nil {
-		return errors.Wrapf(err, "can't get job %d info", jid)
-	}
-
-	if resp.Info[0].Status != sAPI.JobStatus_PENDING {
-		return errJobIsNotPending
-	}
-
-	_, err = p.slurmAPI.CancelJob(context.Background(), &sAPI.CancelJobRequest{JobId: jid})
-	return errors.Wrapf(err, "can't cancel pending job %d", jid)
 }
 
 // startCollectingResultsPod creates a new pod which will transfer data from
