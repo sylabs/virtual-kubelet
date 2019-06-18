@@ -195,6 +195,13 @@ func (p *Provider) UpdatePod(ctx context.Context, pod *v1.Pod) error {
 // DeletePod deletes pod.
 func (p *Provider) DeletePod(ctx context.Context, pod *v1.Pod) error {
 	log.Printf("Delete %s", podName(pod.Namespace, pod.Name))
+	pi := p.pods[podName(pod.Namespace, pod.Name)]
+	if pi.jobID != 0 {
+		_, err := p.slurmAPI.CancelJob(ctx, &sAPI.CancelJobRequest{JobId: pi.jobID})
+		if err != nil {
+			return errors.Wrapf(err, "can't cancel job %d", pi.jobID)
+		}
+	}
 	delete(p.pods, podName(pod.Namespace, pod.Name))
 	return nil
 }
