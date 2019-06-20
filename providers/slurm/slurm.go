@@ -45,10 +45,11 @@ const (
 )
 
 var (
-	vkHostNode = os.Getenv("VK_HOST_NAME")
-	vkPodName  = os.Getenv("VK_POD_NAME")
-	partition  = os.Getenv("PARTITION")
-	redBoxSock = os.Getenv("RED_BOX_SOCK")
+	vkHostNode   = os.Getenv("VK_HOST_NAME")
+	vkPodName    = os.Getenv("VK_POD_NAME")
+	partition    = os.Getenv("PARTITION")
+	redBoxSock   = os.Getenv("RED_BOX_SOCK")
+	resultsImage = os.Getenv("RESULTS_IMAGE")
 
 	ErrNotSupported = errors.New("not supported")
 	ErrPodNotFound  = errors.New("there is no requested pod")
@@ -490,7 +491,7 @@ func (p *Provider) startCollectingResultsPod(jobPod *v1.Pod, r *v1alpha1.SlurmJo
 			Containers: []v1.Container{
 				{
 					Name:            "cr1",
-					Image:           "cloud.sylabs.io/library/slurm/results:staging",
+					Image:           resultsImage,
 					ImagePullPolicy: v1.PullAlways,
 					Args: []string{
 						fmt.Sprintf("--from=%s", r.From),
