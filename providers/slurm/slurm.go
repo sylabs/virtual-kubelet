@@ -27,9 +27,9 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/sylabs/slurm-operator/pkg/operator/apis/slurm/v1alpha1"
-	"github.com/sylabs/slurm-operator/pkg/operator/client/clientset/versioned"
-	sAPI "github.com/sylabs/slurm-operator/pkg/workload/api"
+	"github.com/sylabs/wlm-operator/pkg/operator/apis/wlm/v1alpha1"
+	"github.com/sylabs/wlm-operator/pkg/operator/client/clientset/versioned"
+	sAPI "github.com/sylabs/wlm-operator/pkg/workload/api"
 	"github.com/virtual-kubelet/virtual-kubelet/vkubelet/api"
 	"google.golang.org/grpc"
 	v1 "k8s.io/api/core/v1"
@@ -147,7 +147,7 @@ func (p *Provider) CreatePod(ctx context.Context, pod *v1.Pod) error {
 
 	pod.GetOwnerReferences()
 	if len(pod.OwnerReferences) == 1 && pod.OwnerReferences[0].Kind == slurmJobKind {
-		sj, err := p.sjClient.SlurmV1alpha1().
+		sj, err := p.sjClient.WlmV1alpha1().
 			SlurmJobs(pod.Namespace).
 			Get(pod.OwnerReferences[0].Name, metav1.GetOptions{})
 		if err != nil {
