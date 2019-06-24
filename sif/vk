@@ -14,7 +14,7 @@ Stage: builder
 	apk update
 	apk add git && apk add ca-certificates
 	cd /usr/local/go/src/github.com/virtual-kubelet/virtual-kubelet
-	CGO_ENABLED=0 go build -tags slurm_provider -o main cmd/virtual-kubelet/main.go
+	CGO_ENABLED=0 go build -tags wlm_provider -o main cmd/virtual-kubelet/main.go
 
 Bootstrap: library
 From: library/default/busybox:1.28

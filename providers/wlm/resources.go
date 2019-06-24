@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package slurm
+package wlm
 
 import (
 	"bytes"
@@ -53,7 +53,7 @@ func newNodePatcher(c *corev1.CoreV1Client) (*nodePatcher, error) {
 // AddNodeResources adds passed resources to node capacity.
 func (c *nodePatcher) AddNodeResources(nodeName string, resources map[string]int) error {
 	// https://kubernetes.io/docs/tasks/administer-cluster/extended-resource-node/
-	const k8sResourceT = "/status/capacity/slurm.sylabs.io~1%s"
+	const k8sResourceT = "/status/capacity/wlm.sylabs.io~1%s"
 
 	ops := make([]operation, 0, len(resources))
 	for k, v := range resources {
@@ -78,7 +78,7 @@ func (c *nodePatcher) AddNodeResources(nodeName string, resources map[string]int
 
 // AddNodeLabels adds passed labels to node labels.
 func (c *nodePatcher) AddNodeLabels(nodeName string, labels map[string]string) error {
-	const k8sLabelT = "/metadata/labels/slurm.sylabs.io~1%s"
+	const k8sLabelT = "/metadata/labels/wlm.sylabs.io~1%s"
 
 	ops := make([]operation, 0, len(labels))
 	for k, v := range labels {
@@ -104,7 +104,7 @@ func (c *nodePatcher) AddNodeLabels(nodeName string, labels map[string]string) e
 
 // RemoveNodeLabels removes nodes labels from node.
 func (c *nodePatcher) RemoveNodeLabels(nodeName string, labels map[string]string) error {
-	const k8sLabelT = "/metadata/labels/slurm.sylabs.io~1%s"
+	const k8sLabelT = "/metadata/labels/wlm.sylabs.io~1%s"
 
 	ops := make([]operation, 0, len(labels))
 	for k := range labels {
