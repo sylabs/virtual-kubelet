@@ -786,18 +786,18 @@
   version = "v1.0.1"
 
 [[projects]]
-  branch = "staging"
-  digest = "1:a6b57fcde5e7554d0bb001e257724df1d0d687f1b721943f12a169e9f0915adb"
-  name = "github.com/sylabs/slurm-operator"
+  branch = "master"
+  digest = "1:45247c0d9108b64d2fee5e6c6f1c5ba35ad89651a53610a498c5a80928c5813c"
+  name = "github.com/sylabs/wlm-operator"
   packages = [
-    "pkg/operator/apis/slurm/v1alpha1",
+    "pkg/operator/apis/wlm/v1alpha1",
     "pkg/operator/client/clientset/versioned",
     "pkg/operator/client/clientset/versioned/scheme",
-    "pkg/operator/client/clientset/versioned/typed/slurm/v1alpha1",
+    "pkg/operator/client/clientset/versioned/typed/wlm/v1alpha1",
     "pkg/workload/api",
   ]
   pruneopts = "NUT"
-  revision = ""
+  revision = "24a97a6bf41d1e55c18aad868a41cbe1e1ed1422"
 
 [[projects]]
   digest = "1:c20cebd4c498afb08178e3cb7e550762ee6d27663a81eb69436c4198c1d07cb4"
@@ -1434,9 +1434,9 @@
     "github.com/sirupsen/logrus",
     "github.com/spf13/cobra",
     "github.com/spf13/pflag",
-    "github.com/sylabs/slurm-operator/pkg/operator/apis/slurm/v1alpha1",
-    "github.com/sylabs/slurm-operator/pkg/operator/client/clientset/versioned",
-    "github.com/sylabs/slurm-operator/pkg/workload/api",
+    "github.com/sylabs/wlm-operator/pkg/operator/apis/wlm/v1alpha1",
+    "github.com/sylabs/wlm-operator/pkg/operator/client/clientset/versioned",
+    "github.com/sylabs/wlm-operator/pkg/workload/api",
     "github.com/virtual-kubelet/azure-aci/client",
     "github.com/virtual-kubelet/azure-aci/client/aci",
     "github.com/virtual-kubelet/azure-aci/client/api",

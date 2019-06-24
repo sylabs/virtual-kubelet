@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package slurm
+package wlm
 
 import (
 	"bytes"
@@ -27,9 +27,9 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/sylabs/slurm-operator/pkg/operator/apis/slurm/v1alpha1"
-	"github.com/sylabs/slurm-operator/pkg/operator/client/clientset/versioned"
-	sAPI "github.com/sylabs/slurm-operator/pkg/workload/api"
+	"github.com/sylabs/wlm-operator/pkg/operator/apis/wlm/v1alpha1"
+	"github.com/sylabs/wlm-operator/pkg/operator/client/clientset/versioned"
+	sAPI "github.com/sylabs/wlm-operator/pkg/workload/api"
 	"github.com/virtual-kubelet/virtual-kubelet/vkubelet/api"
 	"google.golang.org/grpc"
 	v1 "k8s.io/api/core/v1"
@@ -74,9 +74,9 @@ type Provider struct {
 	daemonEndpointPort int32
 	internalIP         string
 
-	slurmAPI   sAPI.WorkloadManagerClient
+	wlmAPI     sAPI.WorkloadManagerClient
 	coreClient *corev1.CoreV1Client
-	sjClient   *versioned.Clientset
+	wlmClient  *versioned.Clientset
 
 	pods map[string]*podInfo
 }
@@ -110,10 +110,9 @@ func NewProvider(nodeName, operatingSystem, internalIP string, daemonEndpointPor
 	// start updating nodes labels (cpu per node, mem per node, nodes, features).
 	go newWatchDog(nodePatcher, redBoxClient, partition).watch()
 
-	// SlurmJob ClientSet.
-	sjClient, err := versioned.NewForConfig(config)
+	wlmClient, err := versioned.NewForConfig(config)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not create slurm client set")
+		return nil, errors.Wrap(err, "could not create wlm client set")
 	}
 
 	provider := &Provider{
@@ -126,9 +125,9 @@ func NewProvider(nodeName, operatingSystem, internalIP string, daemonEndpointPor
 		daemonEndpointPort: daemonEndpointPort,
 		internalIP:         internalIP,
 
-		slurmAPI:   redBoxClient,
+		wlmAPI:     redBoxClient,
 		coreClient: coreClient,
-		sjClient:   sjClient,
+		wlmClient:  wlmClient,
 
 		pods: make(map[string]*podInfo),
 	}
@@ -147,16 +146,16 @@ func (p *Provider) CreatePod(ctx context.Context, pod *v1.Pod) error {
 
 	pod.GetOwnerReferences()
 	if len(pod.OwnerReferences) == 1 && pod.OwnerReferences[0].Kind == slurmJobKind {
-		sj, err := p.sjClient.SlurmV1alpha1().
+		sj, err := p.wlmClient.WlmV1alpha1().
 			SlurmJobs(pod.Namespace).
 			Get(pod.OwnerReferences[0].Name, metav1.GetOptions{})
 		if err != nil {
-			return errors.Wrap(err, "can't get slurm job")
+			return errors.Wrap(err, "can't get SlurmJob spec")
 		}
 
 		jobSpec = &sj.Spec
 
-		resp, err := p.slurmAPI.SubmitJob(ctx, &sAPI.SubmitJobRequest{
+		resp, err := p.wlmAPI.SubmitJob(ctx, &sAPI.SubmitJobRequest{
 			Partition: partition,
 			Script:    sj.Spec.Batch,
 		})
@@ -198,7 +197,7 @@ func (p *Provider) DeletePod(ctx context.Context, pod *v1.Pod) error {
 	log.Printf("Delete %s", podName(pod.Namespace, pod.Name))
 	pi := p.pods[podName(pod.Namespace, pod.Name)]
 	if pi.jobID != 0 {
-		_, err := p.slurmAPI.CancelJob(ctx, &sAPI.CancelJobRequest{JobId: pi.jobID})
+		_, err := p.wlmAPI.CancelJob(ctx, &sAPI.CancelJobRequest{JobId: pi.jobID})
 		if err != nil {
 			return errors.Wrapf(err, "can't cancel job %d", pi.jobID)
 		}
@@ -228,22 +227,22 @@ func (p *Provider) GetContainerLogs(ctx context.Context, namespace, pName, conta
 		return nil, ErrPodNotFound
 	}
 
-	if pi.jobID == 0 { // skipping non slurm jobs
+	if pi.jobID == 0 { // skipping non wlm jobs
 		return ioutil.NopCloser(strings.NewReader("")), nil
 	}
 
-	infoR, err := p.slurmAPI.JobInfo(ctx, &sAPI.JobInfoRequest{JobId: pi.jobID})
+	infoR, err := p.wlmAPI.JobInfo(ctx, &sAPI.JobInfoRequest{JobId: pi.jobID})
 	if err != nil && pi.jobInfo == nil {
-		return nil, errors.Wrap(err, "can't get slurm job info")
+		return nil, errors.Wrap(err, "can't get wlm job info")
 	}
 
 	if infoR != nil {
 		pi.jobInfo = infoR.Info[0]
 	}
 
-	openResp, err := p.slurmAPI.OpenFile(context.Background(), &sAPI.OpenFileRequest{Path: pi.jobInfo.StdOut})
+	openResp, err := p.wlmAPI.OpenFile(context.Background(), &sAPI.OpenFileRequest{Path: pi.jobInfo.StdOut})
 	if err != nil {
-		return nil, errors.Wrap(err, "can't open slurm job log file")
+		return nil, errors.Wrap(err, "can't open wlm job log file")
 	}
 
 	buff := &bytes.Buffer{}
@@ -264,7 +263,7 @@ func (p *Provider) GetContainerLogs(ctx context.Context, namespace, pName, conta
 	return ioutil.NopCloser(buff), nil
 }
 
-// RunInContainer SLURM doesn't support it.
+// RunInContainer wlm doesn't support it.
 func (p *Provider) RunInContainer(ctx context.Context, namespace, name, container string, cmd []string, attach api.AttachIO) error {
 	return ErrNotSupported
 }
@@ -318,8 +317,8 @@ func (p *Provider) GetPodStatus(ctx context.Context, namespace, name string) (*v
 	}
 
 	pj, ok := p.pods[podName(namespace, name)]
-	if ok && pj.jobID != 0 { // we need only Slurm jobs.
-		infoR, err := p.slurmAPI.JobInfo(ctx, &sAPI.JobInfoRequest{JobId: pj.jobID})
+	if ok && pj.jobID != 0 { // we need only wlm jobs
+		infoR, err := p.wlmAPI.JobInfo(ctx, &sAPI.JobInfoRequest{JobId: pj.jobID})
 		if err != nil {
 			return nil, errors.Wrapf(err, "can't get status for %d", pj.jobID)
 		}

@@ -12,7 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package v1alpha1 contains API Schema definitions for the slurm v1alpha1 API group
-// +k8s:deepcopy-gen=package,register
-// +groupName=slurm.sylabs.io
-package v1alpha1
+// +build wlm_provider
+
+package register
+
+import (
+	"github.com/virtual-kubelet/virtual-kubelet/providers"
+	"github.com/virtual-kubelet/virtual-kubelet/providers/wlm"
+)
+
+func init() {
+	register("wlm", initWlm)
+}
+
+func initWlm(cfg InitConfig) (providers.Provider, error) {
+	return wlm.NewProvider(
+		cfg.NodeName,
+		cfg.OperatingSystem,
+		cfg.InternalIP,
+		cfg.DaemonPort,
+	)
+}
