@@ -42,6 +42,7 @@ import (
 
 const (
 	slurmJobKind = "SlurmJob"
+	wlmJobKind   = "WlmJob"
 )
 
 var (
@@ -56,9 +57,9 @@ var (
 )
 
 type podInfo struct {
-	jobID   int64
-	jobInfo *sAPI.JobInfo
-	jobSpec *v1alpha1.SlurmJobSpec
+	jobID      int64
+	jobInfo    *sAPI.JobInfo
+	jobResults *v1alpha1.JobResults
 
 	pod *v1.Pod
 }
@@ -141,8 +142,11 @@ func NewProvider(nodeName, operatingSystem, internalIP string, daemonEndpointPor
 func (p *Provider) CreatePod(ctx context.Context, pod *v1.Pod) error {
 	log.Printf("Create Pod %s", podName(pod.Namespace, pod.Name))
 
+	now := metav1.NewTime(time.Now())
+	pod.Status.StartTime = &now
+
 	var jobID int64
-	var jobSpec *v1alpha1.SlurmJobSpec
+	var jobResults *v1alpha1.JobResults
 
 	pod.GetOwnerReferences()
 	if len(pod.OwnerReferences) == 1 && pod.OwnerReferences[0].Kind == slurmJobKind {
@@ -152,8 +156,7 @@ func (p *Provider) CreatePod(ctx context.Context, pod *v1.Pod) error {
 		if err != nil {
 			return errors.Wrap(err, "can't get SlurmJob spec")
 		}
-
-		jobSpec = &sj.Spec
+		jobResults = sj.Spec.Results
 
 		resp, err := p.wlmAPI.SubmitJob(ctx, &sAPI.SubmitJobRequest{
 			Partition: partition,
@@ -166,15 +169,35 @@ func (p *Provider) CreatePod(ctx context.Context, pod *v1.Pod) error {
 		jobID = resp.JobId
 
 		log.Printf("Job %d started", resp.JobId)
+	} else if len(pod.OwnerReferences) == 1 && pod.OwnerReferences[0].Kind == wlmJobKind {
+		wj, err := p.wlmClient.WlmV1alpha1().
+			WlmJobs(pod.Namespace).
+			Get(pod.OwnerReferences[0].Name, metav1.GetOptions{})
+		if err != nil {
+			return errors.Wrap(err, "can't get WlmJob spec")
+		}
+		jobResults = wj.Spec.Results
+		resp, err := p.wlmAPI.SubmitJobContainer(ctx, &sAPI.SubmitJobContainerRequest{
+			ImageName:  wj.Spec.Image,
+			Partition:  partition,
+			Nodes:      wj.Spec.Resources.Nodes,
+			CpuPerNode: wj.Spec.Resources.CpuPerNode,
+			MemPerNode: wj.Spec.Resources.MemPerNode,
+			WallTime:   int64(wj.Spec.Resources.WallTime * time.Second),
+		})
+		if err != nil {
+			return errors.Wrap(err, "can't submit batch script")
+		}
+
+		jobID = resp.JobId
+
+		log.Printf("Job %d started", resp.JobId)
 	}
 
-	now := metav1.NewTime(time.Now())
-	pod.Status.StartTime = &now
-
 	p.pods[podName(pod.Namespace, pod.Name)] = &podInfo{
-		jobID:   jobID,
-		jobSpec: jobSpec,
-		pod:     pod,
+		jobID:      jobID,
+		jobResults: jobResults,
+		pod:        pod,
 	}
 
 	return nil
@@ -330,8 +353,8 @@ func (p *Provider) GetPodStatus(ctx context.Context, namespace, name string) (*v
 				Reason: "Job finished",
 			}
 			status.Phase = v1.PodSucceeded
-			if pj.jobSpec.Results != nil {
-				if err := p.startCollectingResultsPod(pj.pod, pj.jobSpec.Results); err != nil {
+			if pj.jobResults != nil {
+				if err := p.startCollectingResultsPod(pj.pod, pj.jobResults); err != nil {
 					log.Printf("Can't collect job results: %s", err)
 				}
 			}
@@ -480,7 +503,7 @@ func (p *Provider) GetStatsSummary(ctx context.Context) (*stats.Summary, error) 
 
 // startCollectingResultsPod creates a new pod which will transfer data from
 // slurm cluster to mounted volume.
-func (p *Provider) startCollectingResultsPod(jobPod *v1.Pod, r *v1alpha1.SlurmJobResults) error {
+func (p *Provider) startCollectingResultsPod(jobPod *v1.Pod, r *v1alpha1.JobResults) error {
 	collectPod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      jobPod.Name + "-collect",

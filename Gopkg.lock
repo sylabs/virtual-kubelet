@@ -786,8 +786,8 @@
   version = "v1.0.1"
 
 [[projects]]
-  branch = "master"
-  digest = "1:45247c0d9108b64d2fee5e6c6f1c5ba35ad89651a53610a498c5a80928c5813c"
+  branch = "wlm-spec"
+  digest = "1:f63b4a907288a335334c2d397294bf69b9bdeaf17265e7f2f97a7782b5b27919"
   name = "github.com/sylabs/wlm-operator"
   packages = [
     "pkg/operator/apis/wlm/v1alpha1",
@@ -797,7 +797,7 @@
     "pkg/workload/api",
   ]
   pruneopts = "NUT"
-  revision = "24a97a6bf41d1e55c18aad868a41cbe1e1ed1422"
+  revision = "ca6487bfa01c2de018c5062dff0dad946960c453"
 
 [[projects]]
   digest = "1:c20cebd4c498afb08178e3cb7e550762ee6d27663a81eb69436c4198c1d07cb4"

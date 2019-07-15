@@ -113,7 +113,7 @@
 
 [[constraint]]
   name = "github.com/sylabs/wlm-operator"
-  branch = "master"
+  branch = "wlm-spec"
 
 [prune]
   unused-packages = true
