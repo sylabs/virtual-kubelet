@@ -15,7 +15,6 @@
 package wlm
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -32,19 +31,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const (
-	slurmJobKind = "SlurmJob"
-	wlmJobKind   = "WlmJob"
-)
-
-type podInfo struct {
-	jobID      int64
-	jobInfo    *sAPI.JobInfo
-	jobResults *v1alpha1.JobResults
-
-	pod *v1.Pod
-}
-
 // CreatePod created new pod.
 // If a pod owner is a SlurmJob, it will start job on a Slurm cluster,
 // other pods will not be launched.
@@ -54,61 +40,13 @@ func (p *Provider) CreatePod(ctx context.Context, pod *v1.Pod) error {
 	now := metav1.NewTime(time.Now())
 	pod.Status.StartTime = &now
 
-	var jobID int64
-	var jobResults *v1alpha1.JobResults
+	job := newJob(*pod, p.wlmAPI, p.wlmClient)
 
-	if len(pod.OwnerReferences) == 1 {
-		switch pod.OwnerReferences[0].Kind {
-		case slurmJobKind:
-			sj, err := p.wlmClient.WlmV1alpha1().
-				SlurmJobs(pod.Namespace).
-				Get(pod.OwnerReferences[0].Name, metav1.GetOptions{})
-			if err != nil {
-				return errors.Wrap(err, "can't get SlurmJob spec")
-			}
-			jobResults = sj.Spec.Results
-
-			resp, err := p.wlmAPI.SubmitJob(ctx, &sAPI.SubmitJobRequest{
-				Partition: partition,
-				Script:    sj.Spec.Batch,
-			})
-			if err != nil {
-				return errors.Wrap(err, "can't submit batch script")
-			}
-			jobID = resp.JobId
-
-			log.Printf("Slurm job %d started", resp.JobId)
-		case wlmJobKind:
-			wj, err := p.wlmClient.WlmV1alpha1().
-				WlmJobs(pod.Namespace).
-				Get(pod.OwnerReferences[0].Name, metav1.GetOptions{})
-			if err != nil {
-				return errors.Wrap(err, "can't get WlmJob spec")
-			}
-			jobResults = wj.Spec.Results
-			resp, err := p.wlmAPI.SubmitJobContainer(ctx, &sAPI.SubmitJobContainerRequest{
-				ImageName:  wj.Spec.Image,
-				Partition:  partition,
-				Nodes:      wj.Spec.Resources.Nodes,
-				CpuPerNode: wj.Spec.Resources.CpuPerNode,
-				MemPerNode: wj.Spec.Resources.MemPerNode,
-				WallTime:   int64(wj.Spec.Resources.WallTime * time.Second),
-			})
-			if err != nil {
-				return errors.Wrap(err, "can't submit job container")
-			}
-
-			jobID = resp.JobId
-
-			log.Printf("Wlm job %d started", resp.JobId)
-		}
+	if err := job.Start(); err != nil && err != errNotWlmJob {
+		return errors.Wrap(err, "Could not start job")
 	}
 
-	p.pods[podName(pod.Namespace, pod.Name)] = &podInfo{
-		jobID:      jobID,
-		jobResults: jobResults,
-		pod:        pod,
-	}
+	p.pods[podName(pod.Namespace, pod.Name)] = job
 
 	return nil
 }
@@ -120,7 +58,7 @@ func (p *Provider) UpdatePod(ctx context.Context, pod *v1.Pod) error {
 	if !ok {
 		return ErrPodNotFound
 	}
-	pi.pod = pod
+	pi.UpdatePod(*pod)
 
 	return nil
 }
@@ -129,12 +67,10 @@ func (p *Provider) UpdatePod(ctx context.Context, pod *v1.Pod) error {
 func (p *Provider) DeletePod(ctx context.Context, pod *v1.Pod) error {
 	log.Printf("Delete %s", podName(pod.Namespace, pod.Name))
 	pi := p.pods[podName(pod.Namespace, pod.Name)]
-	if pi.jobID != 0 {
-		_, err := p.wlmAPI.CancelJob(ctx, &sAPI.CancelJobRequest{JobId: pi.jobID})
-		if err != nil {
-			return errors.Wrapf(err, "can't cancel job %d", pi.jobID)
-		}
+	if err := pi.Cancel(); err != nil && err != errNotWlmJob {
+		return errors.Wrap(err, "Could not cancel job")
 	}
+
 	delete(p.pods, podName(pod.Namespace, pod.Name))
 	return nil
 }
@@ -147,7 +83,7 @@ func (p *Provider) GetPod(ctx context.Context, namespace, name string) (*v1.Pod,
 		return nil, ErrPodNotFound
 	}
 
-	return pj.pod, nil
+	return &pj.pod, nil
 }
 
 // GetContainerLogs returns logs if requested pod is SlurmJob,
@@ -160,40 +96,16 @@ func (p *Provider) GetContainerLogs(ctx context.Context, namespace, pName, conta
 		return nil, ErrPodNotFound
 	}
 
-	if pi.jobID == 0 { // skipping non wlm jobs
+	logs, err := pi.Logs()
+	if err != nil {
+		if err != errNotWlmJob {
+			return nil, errors.Wrap(err, "Could not get logs")
+		}
+
 		return ioutil.NopCloser(strings.NewReader("")), nil
 	}
 
-	infoR, err := p.wlmAPI.JobInfo(ctx, &sAPI.JobInfoRequest{JobId: pi.jobID})
-	if err != nil && pi.jobInfo == nil {
-		return nil, errors.Wrap(err, "can't get wlm job info")
-	}
-
-	if infoR != nil {
-		pi.jobInfo = infoR.Info[0]
-	}
-
-	openResp, err := p.wlmAPI.OpenFile(context.Background(), &sAPI.OpenFileRequest{Path: pi.jobInfo.StdOut})
-	if err != nil {
-		return nil, errors.Wrap(err, "can't open wlm job log file")
-	}
-
-	buff := &bytes.Buffer{}
-	for {
-		c, err := openResp.Recv()
-		if c != nil {
-			_, err := buff.Write(c.Content)
-			if err != nil {
-				break
-			}
-		}
-
-		if err != nil {
-			break
-		}
-	}
-
-	return ioutil.NopCloser(buff), nil
+	return ioutil.NopCloser(logs), nil
 }
 
 // RunInContainer wlm doesn't support it.
@@ -250,21 +162,24 @@ func (p *Provider) GetPodStatus(ctx context.Context, namespace, name string) (*v
 	}
 
 	pj, ok := p.pods[podName(namespace, name)]
-	if ok && pj.jobID != 0 { // we need only wlm jobs
-		infoR, err := p.wlmAPI.JobInfo(ctx, &sAPI.JobInfoRequest{JobId: pj.jobID})
+	if ok {
+		jobStatus, err := pj.Status()
 		if err != nil {
-			return nil, errors.Wrapf(err, "can't get status for %d", pj.jobID)
-		}
-		pj.jobInfo = infoR.Info[0]
+			if err != errNotWlmJob {
+				return nil, errors.Wrap(err, "Could not get job status")
+			}
 
-		switch infoR.Info[0].Status {
+			return status, nil
+		}
+
+		switch jobStatus {
 		case sAPI.JobStatus_COMPLETED:
 			status.ContainerStatuses[0].State.Terminated = &v1.ContainerStateTerminated{
 				Reason: "Job finished",
 			}
 			status.Phase = v1.PodSucceeded
 			if pj.jobResults != nil {
-				if err := p.startCollectingResultsPod(pj.pod, pj.jobResults); err != nil {
+				if err := p.startCollectingResultsPod(&pj.pod, pj.jobResults); err != nil {
 					log.Printf("Can't collect job results: %s", err)
 				}
 			}
@@ -282,7 +197,7 @@ func (p *Provider) GetPods(ctx context.Context) ([]*v1.Pod, error) {
 
 	pods := make([]*v1.Pod, 0, len(p.pods))
 	for _, pj := range p.pods {
-		pods = append(pods, pj.pod)
+		pods = append(pods, &pj.pod)
 	}
 
 	return pods, nil

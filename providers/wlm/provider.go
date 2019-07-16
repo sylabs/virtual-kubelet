@@ -38,7 +38,7 @@ type Provider struct {
 	coreClient *corev1.CoreV1Client
 	wlmClient  *versioned.Clientset
 
-	pods map[string]*podInfo
+	pods map[string]*job
 }
 
 // NewProvider creates a new SlurmProvider.
@@ -89,7 +89,7 @@ func NewProvider(nodeName, operatingSystem, internalIP string, daemonEndpointPor
 		coreClient: coreClient,
 		wlmClient:  wlmClient,
 
-		pods: make(map[string]*podInfo),
+		pods: make(map[string]*job),
 	}
 
 	return provider, nil
