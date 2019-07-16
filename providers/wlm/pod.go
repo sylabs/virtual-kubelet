@@ -57,8 +57,6 @@ func (p *Provider) CreatePod(ctx context.Context, pod *v1.Pod) error {
 	var jobID int64
 	var jobResults *v1alpha1.JobResults
 
-	pod.GetOwnerReferences()
-
 	if len(pod.OwnerReferences) == 1 {
 		switch pod.OwnerReferences[0].Kind {
 		case slurmJobKind:
