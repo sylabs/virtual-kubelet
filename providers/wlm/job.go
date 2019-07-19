@@ -1,3 +1,17 @@
+// Copyright (c) 2019 Sylabs, Inc. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package wlm
 
 import (
@@ -27,7 +41,7 @@ var (
 )
 
 type job struct {
-	wlmApi    sAPI.WorkloadManagerClient
+	wlmAPI    sAPI.WorkloadManagerClient
 	wlmClient *versioned.Clientset
 
 	jobID      int64
@@ -38,7 +52,7 @@ type job struct {
 	pod    v1.Pod
 }
 
-func newJob(p v1.Pod, wlmApi sAPI.WorkloadManagerClient, wlmClient *versioned.Clientset) *job {
+func newJob(p v1.Pod, wlmAPI sAPI.WorkloadManagerClient, wlmClient *versioned.Clientset) *job {
 	wlmPod := false
 	if len(p.OwnerReferences) == 1 {
 		k := p.OwnerReferences[0].Kind
@@ -48,7 +62,7 @@ func newJob(p v1.Pod, wlmApi sAPI.WorkloadManagerClient, wlmClient *versioned.Cl
 	}
 
 	return &job{
-		wlmApi:    wlmApi,
+		wlmAPI:    wlmAPI,
 		wlmClient: wlmClient,
 		wlmPod:    wlmPod,
 		pod:       p,
@@ -72,16 +86,12 @@ func (ji *job) Start() error {
 	return errors.Wrap(errUnsupportedKind, k)
 }
 
-func (ji *job) UpdatePod(p v1.Pod) {
-	ji.pod = p
-}
-
 func (ji *job) Cancel() error {
 	if !ji.wlmPod {
 		return errNotWlmJob
 	}
 
-	_, err := ji.wlmApi.CancelJob(context.Background(), &sAPI.CancelJobRequest{JobId: ji.jobID})
+	_, err := ji.wlmAPI.CancelJob(context.Background(), &sAPI.CancelJobRequest{JobId: ji.jobID})
 	return errors.Wrapf(err, "can't cancel job %d", ji.jobID)
 }
 
@@ -90,7 +100,7 @@ func (ji *job) Logs() (*bytes.Buffer, error) {
 		return nil, errNotWlmJob
 	}
 
-	infoR, err := ji.wlmApi.JobInfo(context.Background(), &sAPI.JobInfoRequest{JobId: ji.jobID})
+	infoR, err := ji.wlmAPI.JobInfo(context.Background(), &sAPI.JobInfoRequest{JobId: ji.jobID})
 	if err != nil && ji.jobInfo == nil {
 		return nil, errors.Wrap(err, "can't get wlm job info")
 	}
@@ -99,7 +109,7 @@ func (ji *job) Logs() (*bytes.Buffer, error) {
 		ji.jobInfo = infoR.Info[0]
 	}
 
-	openResp, err := ji.wlmApi.OpenFile(context.Background(), &sAPI.OpenFileRequest{Path: ji.jobInfo.StdOut})
+	openResp, err := ji.wlmAPI.OpenFile(context.Background(), &sAPI.OpenFileRequest{Path: ji.jobInfo.StdOut})
 	if err != nil {
 		return nil, errors.Wrap(err, "can't open wlm job log file")
 	}
@@ -127,7 +137,7 @@ func (ji *job) Status() (sAPI.JobStatus, error) {
 		return 0, errNotWlmJob
 	}
 
-	infoR, err := ji.wlmApi.JobInfo(context.Background(), &sAPI.JobInfoRequest{JobId: ji.jobID})
+	infoR, err := ji.wlmAPI.JobInfo(context.Background(), &sAPI.JobInfoRequest{JobId: ji.jobID})
 	if err != nil {
 		return 0, errors.Wrapf(err, "can't get status for %d", ji.jobID)
 	}
@@ -147,7 +157,7 @@ func (ji *job) startSlurmJob() error {
 	}
 	ji.jobResults = sj.Spec.Results
 
-	resp, err := ji.wlmApi.SubmitJob(context.Background(), &sAPI.SubmitJobRequest{
+	resp, err := ji.wlmAPI.SubmitJob(context.Background(), &sAPI.SubmitJobRequest{
 		Partition: partition,
 		Script:    sj.Spec.Batch,
 	})
@@ -170,7 +180,7 @@ func (ji *job) startWlmJob() error {
 		return errors.Wrap(err, "can't get WlmJob spec")
 	}
 	ji.jobResults = wj.Spec.Results
-	resp, err := ji.wlmApi.SubmitJobContainer(context.Background(), &sAPI.SubmitJobContainerRequest{
+	resp, err := ji.wlmAPI.SubmitJobContainer(context.Background(), &sAPI.SubmitJobContainerRequest{
 		ImageName:  wj.Spec.Image,
 		Partition:  partition,
 		Nodes:      wj.Spec.Resources.Nodes,

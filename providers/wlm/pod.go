@@ -58,7 +58,7 @@ func (p *Provider) UpdatePod(ctx context.Context, pod *v1.Pod) error {
 	if !ok {
 		return ErrPodNotFound
 	}
-	pi.UpdatePod(*pod)
+	pi.pod = *pod
 
 	return nil
 }
