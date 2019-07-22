@@ -193,7 +193,7 @@ func (ji *job) startWlmJob() error {
 		ImageName:  wj.Spec.Image,
 		Partition:  partition,
 		Nodes:      wj.Spec.Resources.Nodes,
-		CpuPerNode: wj.Spec.Resources.CpuPerNode,
+		CpuPerNode: wj.Spec.Resources.CPUPerNode,
 		MemPerNode: wj.Spec.Resources.MemPerNode,
 		WallTime:   wj.Spec.Resources.WallTime,
 	})
