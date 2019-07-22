@@ -17,7 +17,6 @@ package wlm
 import (
 	"bytes"
 	"log"
-	"time"
 
 	"golang.org/x/net/context"
 
@@ -40,6 +39,7 @@ var (
 	errUnsupportedKind = errors.New("unsupported kind")
 )
 
+// job in an abstraction above pod for more easier controlling wlm jobs lifecycle.
 type job struct {
 	wlmAPI    sAPI.WorkloadManagerClient
 	wlmClient *versioned.Clientset
@@ -52,6 +52,7 @@ type job struct {
 	pod    v1.Pod
 }
 
+// newJob creates new job and checks if the pod is a wlmPod.
 func newJob(p v1.Pod, wlmAPI sAPI.WorkloadManagerClient, wlmClient *versioned.Clientset) *job {
 	wlmPod := false
 	if len(p.OwnerReferences) == 1 {
@@ -69,6 +70,8 @@ func newJob(p v1.Pod, wlmAPI sAPI.WorkloadManagerClient, wlmClient *versioned.Cl
 	}
 }
 
+// Start starts wlm or slurm job.
+// If pod is not wlmPod returns errNotWlmJob.
 func (ji *job) Start() error {
 	if !ji.wlmPod {
 		return errNotWlmJob
@@ -86,6 +89,8 @@ func (ji *job) Start() error {
 	return errors.Wrap(errUnsupportedKind, k)
 }
 
+// Cancel cancels running job.
+// If pod is not wlmPod returns errNotWlmJob.
 func (ji *job) Cancel() error {
 	if !ji.wlmPod {
 		return errNotWlmJob
@@ -95,6 +100,8 @@ func (ji *job) Cancel() error {
 	return errors.Wrapf(err, "can't cancel job %d", ji.jobID)
 }
 
+// Logs returns job logs.
+// If pod is not wlmPod returns errNotWlmJob.
 func (ji *job) Logs() (*bytes.Buffer, error) {
 	if !ji.wlmPod {
 		return nil, errNotWlmJob
@@ -132,6 +139,8 @@ func (ji *job) Logs() (*bytes.Buffer, error) {
 	return buff, nil
 }
 
+// Status returns jobs state.
+// If pod is not wlmPod returns errNotWlmJob.
 func (ji *job) Status() (sAPI.JobStatus, error) {
 	if !ji.wlmPod {
 		return 0, errNotWlmJob
@@ -186,7 +195,7 @@ func (ji *job) startWlmJob() error {
 		Nodes:      wj.Spec.Resources.Nodes,
 		CpuPerNode: wj.Spec.Resources.CpuPerNode,
 		MemPerNode: wj.Spec.Resources.MemPerNode,
-		WallTime:   int64(wj.Spec.Resources.WallTime * time.Second),
+		WallTime:   wj.Spec.Resources.WallTime,
 	})
 	if err != nil {
 		return errors.Wrap(err, "can't submit job container")

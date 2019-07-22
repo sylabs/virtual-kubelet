@@ -15,8 +15,6 @@
 package v1alpha1
 
 import (
-	"time"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -60,8 +58,17 @@ type WlmJobList struct {
 // WlmJobSpec defines the desired state of WlmJob
 // +k8s:openapi-gen=true
 type WlmJobSpec struct {
-	Image     string       `json:"image"`
+	// Image name to start as a job
+	Image string `json:"image"`
+
+	// Resources describes required for a job resources
 	Resources WlmResources `json:"resources,omitempty"`
+
+	// NodeSelector is a selector which must be true for the WlmJob to fit on a node.
+	// Selector which must match a node's labels for the WlmJob to be scheduled on that node.
+	// More info: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/.
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+
 	// Results may be specified for an optional results collection step.
 	// When specified, after job is completed all results will be downloaded from WLM
 	// cluster with respect to this configuration.
@@ -71,8 +78,9 @@ type WlmJobSpec struct {
 // WlmResources is a schema for wlm resources.
 // +k8s:openapi-gen=true
 type WlmResources struct {
-	Nodes      int64         `json:"nodes,omitempty"`
-	CpuPerNode int64         `json:"cpuPerNode,omitempty"`
-	MemPerNode int64         `json:"memPerNode,omitempty"`
-	WallTime   time.Duration `json:"wallTime,omitempty"`
+	Nodes      int64 `json:"nodes,omitempty"`
+	CpuPerNode int64 `json:"cpuPerNode,omitempty"`
+	MemPerNode int64 `json:"memPerNode,omitempty"`
+	// WallTime in seconds
+	WallTime int64 `json:"wallTime,omitempty"`
 }
