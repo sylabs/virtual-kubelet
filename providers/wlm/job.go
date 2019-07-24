@@ -196,6 +196,18 @@ func (ji *job) startWlmJob() error {
 		CpuPerNode: wj.Spec.Resources.CPUPerNode,
 		MemPerNode: wj.Spec.Resources.MemPerNode,
 		WallTime:   wj.Spec.Resources.WallTime,
+		Options: &sAPI.SingularityOptions{
+			App:           wj.Spec.Options.App,
+			AllowUnsigned: wj.Spec.Options.AllowUnsigned,
+			Binds:         wj.Spec.Options.Binds,
+			ClearEnv:      wj.Spec.Options.CleanEnv,
+			FakeRoot:      wj.Spec.Options.FakeRoot,
+			HostName:      wj.Spec.Options.HostName,
+			Ipc:           wj.Spec.Options.IPC,
+			Pid:           wj.Spec.Options.PID,
+			NoPrivs:       wj.Spec.Options.NoPrivs,
+			Writable:      wj.Spec.Options.Writable,
+		},
 	})
 	if err != nil {
 		return errors.Wrap(err, "can't submit job container")
