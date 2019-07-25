@@ -55,6 +55,8 @@ type job struct {
 // newJob creates new job and checks if the pod is a wlmPod.
 func newJob(p v1.Pod, wlmAPI sAPI.WorkloadManagerClient, wlmClient *versioned.Clientset) *job {
 	wlmPod := false
+
+	// check if pod is wlm-pod
 	if len(p.OwnerReferences) == 1 {
 		k := p.OwnerReferences[0].Kind
 		if k == slurmJobKind || k == wlmJobKind {
