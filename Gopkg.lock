@@ -256,7 +256,7 @@
   version = "v0.19.0"
 
 [[projects]]
-  digest = "1:37234906013da82d4c05666262eda5bdec8f736bafa7d4ec1fb3314e965b476f"
+  digest = "0:"
   name = "github.com/gogo/protobuf"
   packages = [
     "gogoproto",
@@ -285,7 +285,7 @@
   revision = "c65c006176ff7ff98bb916961c7abbc6b0afc0aa"
 
 [[projects]]
-  digest = "1:dcb061e64676cf9b26e3f6339541b5b9b30d39e16e1d6dd12951e4770356debe"
+  digest = "0:"
   name = "github.com/golang/protobuf"
   packages = [
     "proto",
@@ -786,8 +786,8 @@
   version = "v1.0.1"
 
 [[projects]]
-  branch = "master"
-  digest = "1:45247c0d9108b64d2fee5e6c6f1c5ba35ad89651a53610a498c5a80928c5813c"
+  branch = "wlm-spec"
+  digest = "1:d00a47fea60362f588039b63337f1b759a512e7a3382dd81710a055e9540060d"
   name = "github.com/sylabs/wlm-operator"
   packages = [
     "pkg/operator/apis/wlm/v1alpha1",
@@ -797,7 +797,7 @@
     "pkg/workload/api",
   ]
   pruneopts = "NUT"
-  revision = "24a97a6bf41d1e55c18aad868a41cbe1e1ed1422"
+  revision = "c0c05419ef74b3f4f16d2561dbac987d6c3a47f4"
 
 [[projects]]
   digest = "1:c20cebd4c498afb08178e3cb7e550762ee6d27663a81eb69436c4198c1d07cb4"
