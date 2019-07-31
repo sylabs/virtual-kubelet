@@ -7,6 +7,9 @@ jobs:
       - image: circleci/golang:1.12
     working_directory: /go/src/github.com/virtual-kubelet/virtual-kubelet
     steps:
+      - run:
+          name: echo
+          command: echo $CIRCLE_REPOSITORY_URL
       - checkout
       - persist_to_workspace:
           root: /go
